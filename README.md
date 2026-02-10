@@ -2,7 +2,7 @@
 
 [![Swift Test](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml/badge.svg)](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml)
 ![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138.svg?style=flat&logo=swift)
-![macOS 26.0](https://img.shields.io/badge/Platforms-macOS%2026.0-lightgray.svg?style=flat)
+![macOS 26.0](https://img.shields.io/badge/macOS-26.0-lightgray.svg?style=flat&logo=apple)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 spm-kit is a simple command-line tool built with Swift. It helps you create and maintain modular Xcode projects where most of the code lives in Swift Package Manager (SPM) modules.
