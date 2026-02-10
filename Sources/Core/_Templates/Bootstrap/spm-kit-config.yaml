@@ -1,0 +1,2 @@
+modules-path: ./Modules
+swift-format-config-path: .swift-format

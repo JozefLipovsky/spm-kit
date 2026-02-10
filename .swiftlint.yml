@@ -1,0 +1,37 @@
+strict: true
+
+disabled_rules:
+  - switch_case_alignment
+  - todo
+
+identifier_name:
+  excluded:
+    - v1
+    - v2
+    - to
+
+nesting:
+  type_level: 5
+
+function_parameter_count:
+  warning: 8
+
+function_body_length:
+  warning: 70
+
+line_length:
+  warning: 120
+  ignores_urls: true
+  ignores_comments: true
+  ignores_multiline_strings: true
+  ignores_regex_literals: true
+
+file_length:
+  warning: 600
+  error: 1000
+  ignore_comment_only_lines: true
+
+excluded:
+  - .build/
+  - Sources/Core/_Templates/
+  - Tests/CoreTests/_Fixtures/
