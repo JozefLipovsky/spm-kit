@@ -1,0 +1,4 @@
+-P macos-26=-self-hosted
+--container-architecture linux/amd64
+--no-cache-server
+--use-gitignore

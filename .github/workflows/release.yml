@@ -1,0 +1,69 @@
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+# https://github.com/actions/checkout
+# https://github.com/softprops/action-gh-release
+
+name: Release
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+  release:
+    runs-on: macos-26
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: swift-actions/setup-swift@v3
+      with:
+        swift-version: '6.2.3'
+
+    - name: Build for release
+      run: |
+        swift build -c release --arch arm64 --product spm-kit
+        swift build -c release --arch x86_64 --product spm-kit
+
+    - name: Compress build archives
+      run: |
+        VERSION=${{ github.ref_name }}
+        tar -czf spm-kit-${VERSION}-macos-arm64.tar.gz -C .build/arm64-apple-macosx/release spm-kit
+        tar -czf spm-kit-${VERSION}-macos-x86_64.tar.gz -C .build/x86_64-apple-macosx/release spm-kit
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: spm-kit-${{ github.ref_name }}-macos-*.tar.gz
+        generate_release_notes: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update homebrew formula
+      run: |
+        VERSION=${{ github.ref_name }}
+        VERSION_NUM=${VERSION#v}
+
+        # Calculate Checksums
+        ARM64_SHA=$(shasum -a 256 spm-kit-${VERSION}-macos-arm64.tar.gz | awk '{print $1}')
+        X86_64_SHA=$(shasum -a 256 spm-kit-${VERSION}-macos-x86_64.tar.gz | awk '{print $1}')
+
+        # Clone the Tap repo
+        git clone https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/JozefLipovsky/homebrew-tap.git homebrew-tap
+
+        # Generate the final formula from the template
+        cp .github/workflows/spm-kit.rb.template spm-kit.rb
+        sed -i "" "s/{{VERSION}}/${VERSION_NUM}/g" spm-kit.rb
+        sed -i "" "s/{{ARM64_SHA}}/${ARM64_SHA}/g" spm-kit.rb
+        sed -i "" "s/{{X86_64_SHA}}/${X86_64_SHA}/g" spm-kit.rb
+
+        # Move to the tap repository and push changes
+        mkdir -p homebrew-tap/Formula
+        mv spm-kit.rb homebrew-tap/Formula/spm-kit.rb
+
+        cd homebrew-tap
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add Formula/spm-kit.rb
+        git commit -m "Update spm-kit to ${VERSION}"
+        git push
