@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# Xcode
+.build/
+xcuserdata/
+xcshareddata/
+DerivedData/
+*.xcarchive/
+
+# Allow shared Xcode data for templates and fixtures
+!Sources/Core/_Templates/**/xcshareddata/
+!Tests/CoreTests/_Fixtures/**/xcshareddata/
+
+# SPM
+.swiftpm
+*/Packages
+Package.pins
+Package.resolved
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Generated Files
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Other
+.netrc
+
+# ProjectTools symlink
+project
