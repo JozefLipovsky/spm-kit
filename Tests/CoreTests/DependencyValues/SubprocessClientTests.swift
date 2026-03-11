@@ -159,12 +159,12 @@ struct SubprocessClientTests {
 
 @Suite("SubprocessClient.Error Tests", .tags(.unit))
 struct SubprocessClientErrorTests {
-    @Test("errorDescription - with subprocessFailed and error prefix - returns sanitized message")
-    func errorDescription_withSubprocessFailedAndErrorPrefix_returnsSanitizedMessage() {
+    @Test("errorDescription - with commandFailed and underlying error prefix - returns sanitized message")
+    func errorDescription_withCommandFailedAndUnderlyingErrorPrefix_returnsSanitizedMessage() {
         // Given
         let errorMessage = "compilation failed"
         let standardError = "error: \(errorMessage)"
-        let error = SubprocessClient.Error.subprocessFailed(underlyingError: standardError)
+        let error = SubprocessClient.Error.commandFailed(status: .exited(1), underlyingError: standardError)
 
         // When
         let sut = error.errorDescription
@@ -173,11 +173,11 @@ struct SubprocessClientErrorTests {
         #expect(sut == "Command execution failed: \(errorMessage)")
     }
 
-    @Test("errorDescription - with subprocessFailed and no error prefix - returns full message")
-    func errorDescription_withSubprocessFailedAndNoErrorPrefix_returnsFullMessage() {
+    @Test("errorDescription - with commandFailed and no underlying error prefix - returns full message")
+    func errorDescription_withCommandFailedAndNoUnderlyingErrorPrefix_returnsFullMessage() {
         // Given
         let errorMessage = "tests failed"
-        let error = SubprocessClient.Error.subprocessFailed(underlyingError: errorMessage)
+        let error = SubprocessClient.Error.commandFailed(status: .exited(1), underlyingError: errorMessage)
 
         // When
         let sut = error.errorDescription
@@ -186,18 +186,31 @@ struct SubprocessClientErrorTests {
         #expect(sut == "Command execution failed: \(errorMessage)")
     }
 
-    @Test("errorDescription - with subprocessFailed and whitespace - returns trimmed message")
-    func errorDescription_withSubprocessFailedAndWhitespace_returnsTrimmedMessage() {
+    @Test("errorDescription - with commandFailed and whitespace - returns trimmed message")
+    func errorDescription_withCommandFailedAndWhitespace_returnsTrimmedMessage() {
         // Given
         let errorMessage = "invalid arguments"
         let standardError = "  \n \(errorMessage) \n  "
-        let error = SubprocessClient.Error.subprocessFailed(underlyingError: standardError)
+        let error = SubprocessClient.Error.commandFailed(status: .exited(1), underlyingError: standardError)
 
         // When
         let sut = error.errorDescription
 
         // Then
         #expect(sut == "Command execution failed: \(errorMessage)")
+    }
+
+    @Test("errorDescription - with commandFailed and no underlying error - returns status message")
+    func errorDescription_withCommandFailedAndNoUnderlyingError_returnsStatusMessage() {
+        // Given
+        let status = TerminationStatus.exited(1)
+        let error = SubprocessClient.Error.commandFailed(status: status, underlyingError: nil)
+
+        // When
+        let sut = error.errorDescription
+
+        // Then
+        #expect(sut == "The command execution failed with status: \(status)")
     }
 
     @Test("errorDescription - with missingOutput - returns correct message")
