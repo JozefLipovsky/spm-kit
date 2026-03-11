@@ -35,19 +35,15 @@ extension SubprocessClient: DependencyKey {
         run: { command, workingDirectory in
             let result = try await execute(command, in: workingDirectory)
 
-            if let error = result.standardError, !error.isEmpty {
-                throw Error.subprocessFailed(underlyingError: error)
-            }
-
-            if let output = result.standardOutput, !output.isEmpty {
-                print(output)
+            guard result.terminationStatus.isSuccess else {
+                throw Error.commandFailed(status: result.terminationStatus, underlyingError: result.standardError)
             }
         },
         runAndCapture: { command, workingDirectory in
             let result = try await execute(command, in: workingDirectory)
 
-            if let error = result.standardError, !error.isEmpty {
-                throw Error.subprocessFailed(underlyingError: error)
+            guard result.terminationStatus.isSuccess else {
+                throw Error.commandFailed(status: result.terminationStatus, underlyingError: result.standardError)
             }
 
             guard
@@ -74,17 +70,20 @@ package extension DependencyValues {
 package extension SubprocessClient {
     /// Errors that can be thrown by the SubprocessClient.
     enum Error: LocalizedError, Equatable {
-        /// An error indicating that a subprocess command failed to execute.
-        case subprocessFailed(underlyingError: String)
+        /// An error indicating that a subprocess command failed with a specific termination status and an underlying error message.
+        case commandFailed(status: TerminationStatus, underlyingError: String?)
         /// An error indicating that the subprocess command finished successfully but returned no output.
         case missingOutput(command: String)
 
         package var errorDescription: String? {
             switch self {
-                case .subprocessFailed(let underlyingError):
-                    var sanitizedError = underlyingError.trimmingCharacters(in: .whitespacesAndNewlines)
+                case .commandFailed(let status, let underlyingError):
+                    guard let underlyingError else {
+                        return "The command execution failed with status: \(status)"
+                    }
 
                     // Remove duplicate error string prefix
+                    var sanitizedError = underlyingError.trimmingCharacters(in: .whitespacesAndNewlines)
                     let pattern = "^error\\s*:?\\s*"
                     if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
                         let range = NSRange(location: 0, length: sanitizedError.utf16.count)
@@ -105,10 +104,9 @@ package extension SubprocessClient {
 }
 
 private extension SubprocessClient {
-    static func execute(
-        _ command: ShellCommand,
-        in workingDirectory: FilePath?
-    ) async throws -> CollectedResult<StringOutput<Unicode.UTF8>, StringOutput<Unicode.UTF8>> {
+    typealias Result = CollectedResult<StringOutput<Unicode.UTF8>, StringOutput<Unicode.UTF8>>
+
+    static func execute(_ command: ShellCommand, in workingDirectory: FilePath?) async throws -> Result {
         try await Subprocess.run(
             command.executable,
             arguments: command.arguments,
