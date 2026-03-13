@@ -83,27 +83,16 @@ package struct NooraClient: Sendable {
             _ shouldSkip: Bool
         ) async -> Bool = { _, _ in false }
 
-    /// Prompts the user to select target dependencies from a list of options.
+    /// Prompts the user to select dependencies from a list of options.
     /// - Parameters:
     ///   - configuration: The configuration for the prompt.
-    ///   - options: The list of available target dependencies.
-    /// - Returns: The selected target dependencies.
-    package var targetDependenciesSelection:
+    ///   - options: The list of available dependencies.
+    /// - Returns: The selected dependencies.
+    package var dependenciesSelection:
         @Sendable (
             _ configuration: NooraPromptConfiguration,
-            _ options: [TargetDependency]
-        ) async -> [TargetDependency] = { _, _ in [] }
-
-    /// Prompts the user to select product dependencies from a list of options.
-    /// - Parameters:
-    ///   - configuration: The configuration for the prompt.
-    ///   - options: The list of available product dependencies.
-    /// - Returns: The selected product dependencies.
-    package var productDependenciesSelection:
-        @Sendable (
-            _ configuration: NooraPromptConfiguration,
-            _ options: [ProductDependency]
-        ) async -> [ProductDependency] = { _, _ in [] }
+            _ options: [PackageDependency]
+        ) async -> [PackageDependency] = { _, _ in [] }
 
     /// Posts an info message to inform the user about an issue.
     /// - Parameters:
@@ -155,11 +144,8 @@ extension NooraClient: DependencyKey {
 
                 return false
             },
-            targetDependenciesSelection: { configuration, options in
-                targetDependenciesPrompt(configuration, options: options)
-            },
-            productDependenciesSelection: { configuration, options in
-                productDependenciesPrompt(configuration, options: options)
+            dependenciesSelection: { configuration, options in
+                dependenciesPrompt(configuration, options: options)
             },
             info: { message in
                 Noora().info(InfoAlert(stringLiteral: message))
@@ -267,22 +253,10 @@ private extension NooraClient {
         )
     }
 
-    static func targetDependenciesPrompt(
+    static func dependenciesPrompt(
         _ configuration: NooraPromptConfiguration,
-        options: [TargetDependency]
-    ) -> [TargetDependency] {
-        Noora().multipleChoicePrompt(
-            title: configuration.title,
-            question: configuration.question,
-            options: options,
-            description: configuration.description
-        )
-    }
-
-    static func productDependenciesPrompt(
-        _ configuration: NooraPromptConfiguration,
-        options: [ProductDependency]
-    ) -> [ProductDependency] {
+        options: [PackageDependency]
+    ) -> [PackageDependency] {
         Noora().multipleChoicePrompt(
             title: configuration.title,
             question: configuration.question,

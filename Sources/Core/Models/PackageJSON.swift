@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents the parsed JSON output of `swift package dump-package`.
-package struct PackageJSON: Decodable, Equatable {
+package struct PackageJSON: Decodable, Equatable, Sendable {
     /// The name of the package.
     package let name: String
     /// The products defined in the package.
@@ -32,7 +32,7 @@ package struct PackageJSON: Decodable, Equatable {
 
 extension PackageJSON {
     /// Represents a swift package product in a `PackageJSON`.
-    package struct Product: Decodable, Equatable {
+    package struct Product: Decodable, Equatable, Sendable {
         /// The name of the product.
         package let name: String
         /// The type of the product.
@@ -40,7 +40,7 @@ extension PackageJSON {
     }
 
     /// Represents a swift package target in a `PackageJSON`.
-    package struct Target: Decodable, Equatable {
+    package struct Target: Decodable, Equatable, Sendable {
         /// The name of the target.
         package let name: String
         /// The type of the target.
@@ -50,7 +50,7 @@ extension PackageJSON {
 
 extension PackageJSON.Target {
     /// Defines the types of targets available in a `PackageJSON.Target`.
-    package enum TargetType: Decodable, Equatable {
+    package enum TargetType: Decodable, Equatable, Sendable {
         /// A target that contains code for the Swift package's functionality.
         case regular
         /// A target that contains code for an executable's main module.
@@ -84,7 +84,7 @@ extension PackageJSON.Target {
 
 extension PackageJSON.Product {
     /// Defines the types of products available in a `PackageJSON.Product`.
-    package enum ProductType: Equatable, Decodable {
+    package enum ProductType: Equatable, Decodable, Sendable {
         /// A library product (includes static, dynamic, automatic libraries).
         case library
         /// An executable product.
