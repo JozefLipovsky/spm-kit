@@ -12,13 +12,15 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
     /// A target dependency within the same package.
     case target(PackageJSON.Target)
     /// A product dependency from an external package.
-    case product(product: PackageJSON.Product, packageName: String)
+    case product(PackageJSON.Product, packageName: String)
 
     /// The name of the dependency.
     package var name: String {
         switch self {
-            case .target(let target): return target.name
-            case .product(let product, _): return product.name
+            case .target(let target):
+                return target.name
+            case .product(let product, _):
+                return product.name
         }
     }
 
