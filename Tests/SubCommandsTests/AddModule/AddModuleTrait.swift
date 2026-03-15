@@ -82,19 +82,12 @@ struct AddModuleTrait: TestTrait, TestScoping {
                 )
                 return nooraClientStubs.selectDependencies
             }
-            $0.nooraClient.targetDependenciesSelection = { configuration, options in
-                await executionContext.nooraClientSpy.recordTargetDependenciesSelection(
+            $0.nooraClient.dependenciesSelection = { configuration, options in
+                await executionContext.nooraClientSpy.recordDependenciesSelection(
                     configuration: configuration,
                     options: options
                 )
-                return nooraClientStubs.targetDependencies
-            }
-            $0.nooraClient.productDependenciesSelection = { configuration, options in
-                await executionContext.nooraClientSpy.recordProductDependenciesSelection(
-                    configuration: configuration,
-                    options: options
-                )
-                return nooraClientStubs.productDependencies
+                return nooraClientStubs.dependencies
             }
             $0.nooraClient.operationProgress = { message, operation in
                 await executionContext.nooraClientSpy.recordOperationProgress(message: message)
@@ -164,23 +157,20 @@ extension AddModuleTrait {
         let productType: ProductType
         let testingLibrary: TestingLibrary
         let selectDependencies: Bool
-        let targetDependencies: [TargetDependency]
-        let productDependencies: [ProductDependency]
+        let dependencies: [PackageDependency]
 
         init(
             moduleName: String = "ModuleStub",
             productType: ProductType = .library,
             testingLibrary: TestingLibrary = .swiftTesting,
             selectDependencies: Bool = false,
-            targetDependencies: [TargetDependency] = [],
-            productDependencies: [ProductDependency] = []
+            dependencies: [PackageDependency] = []
         ) {
             self.moduleName = moduleName
             self.productType = productType
             self.testingLibrary = testingLibrary
             self.selectDependencies = selectDependencies
-            self.targetDependencies = targetDependencies
-            self.productDependencies = productDependencies
+            self.dependencies = dependencies
         }
     }
 

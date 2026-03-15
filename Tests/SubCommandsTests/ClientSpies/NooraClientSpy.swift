@@ -14,8 +14,7 @@ actor NooraClientSpy {
     private(set) var platformsSelections: [PlatformsSelection]?
     private(set) var productTypeSelections: [ProductTypeSelection]?
     private(set) var yesOrNoConfirmations: [YesOrNoConfirmation]?
-    private(set) var targetDependenciesSelections: [TargetDependenciesSelection]?
-    private(set) var productDependenciesSelections: [ProductDependenciesSelection]?
+    private(set) var dependenciesSelections: [DependenciesSelection]?
     private(set) var operationProgresses: [OperationProgress]?
 
     func recordTextInput(configuration: NooraPromptConfiguration, argument: String?) {
@@ -63,21 +62,12 @@ actor NooraClientSpy {
         }
     }
 
-    func recordTargetDependenciesSelection(configuration: NooraPromptConfiguration, options: [TargetDependency]) {
-        let selection = TargetDependenciesSelection(configuration: configuration, options: options)
-        if targetDependenciesSelections == nil {
-            targetDependenciesSelections = [selection]
+    func recordDependenciesSelection(configuration: NooraPromptConfiguration, options: [PackageDependency]) {
+        let selection = DependenciesSelection(configuration: configuration, options: options)
+        if dependenciesSelections == nil {
+            dependenciesSelections = [selection]
         } else {
-            targetDependenciesSelections?.append(selection)
-        }
-    }
-
-    func recordProductDependenciesSelection(configuration: NooraPromptConfiguration, options: [ProductDependency]) {
-        let selection = ProductDependenciesSelection(configuration: configuration, options: options)
-        if productDependenciesSelections == nil {
-            productDependenciesSelections = [selection]
-        } else {
-            productDependenciesSelections?.append(selection)
+            dependenciesSelections?.append(selection)
         }
     }
 
@@ -117,14 +107,9 @@ extension NooraClientSpy {
         let shouldSkip: Bool
     }
 
-    struct TargetDependenciesSelection {
+    struct DependenciesSelection {
         let configuration: NooraPromptConfiguration
-        let options: [TargetDependency]
-    }
-
-    struct ProductDependenciesSelection {
-        let configuration: NooraPromptConfiguration
-        let options: [ProductDependency]
+        let options: [PackageDependency]
     }
 
     struct OperationProgress {

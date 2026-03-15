@@ -39,8 +39,7 @@ struct AddModuleTests {
         let productTypeSelections = try #require(await context.nooraClientSpy.productTypeSelections)
         let testingLibrarySelections = try #require(await context.nooraClientSpy.testingLibrarySelections)
         let yesOrNoConfirmations = try #require(await context.nooraClientSpy.yesOrNoConfirmations)
-        let targetDependenciesSelections = await context.nooraClientSpy.targetDependenciesSelections
-        let productDependenciesSelections = await context.nooraClientSpy.productDependenciesSelections
+        let dependenciesSelections = await context.nooraClientSpy.dependenciesSelections
         let modulesPathConfigPaths = try #require(await context.configClientSpy.modulesPathConfigPaths)
         let swiftFormatConfigPathConfigPaths = try #require(
             await context.configClientSpy.swiftFormatConfigPathConfigPaths
@@ -52,8 +51,7 @@ struct AddModuleTests {
         #expect(productTypeSelections.count == 1)
         #expect(testingLibrarySelections.count == 1)
         #expect(yesOrNoConfirmations.count == 1)
-        #expect(targetDependenciesSelections == nil)
-        #expect(productDependenciesSelections == nil)
+        #expect(dependenciesSelections == nil)
         #expect(modulesPathConfigPaths.count == 1)
         #expect(swiftFormatConfigPathConfigPaths.count == 1)
 
@@ -133,14 +131,12 @@ struct AddModuleTests {
         let context = try #require(AddModuleExecutionContext.current)
         let subprocessRunCommands = try #require(await context.subprocessClientSpy.runCalls)
         let subprocessRunAndCaptureCommands = try #require(await context.subprocessClientSpy.runAndCaptureCalls)
-        let targetDependenciesSelections = try #require(await context.nooraClientSpy.targetDependenciesSelections)
-        let productDependenciesSelections = try #require(await context.nooraClientSpy.productDependenciesSelections)
+        let dependenciesSelections = try #require(await context.nooraClientSpy.dependenciesSelections)
         let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
 
         #expect(subprocessRunCommands.count == 3)
         #expect(subprocessRunAndCaptureCommands.count == 3)
-        #expect(targetDependenciesSelections.count == 1)
-        #expect(productDependenciesSelections.count == 1)
+        #expect(dependenciesSelections.count == 1)
         #expect(operationProgresses.count == 2)
 
         // Target Dependencies
@@ -152,7 +148,7 @@ struct AddModuleTests {
         #expect(subprocessRunAndCaptureCommands[0].command == .swift(.package(.dumpPackage)))
         #expect(subprocessRunAndCaptureCommands[0].workingDirectory == "/fake/path/to/ModulesStub")
         #expect(operationProgresses[0].message == "Fetching target dependencies")
-        #expect(targetDependenciesSelections[0].configuration.title.plain() == "Target dependencies")
+        #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
         #expect(subprocessRunCommands[0].command == expectedAddTargetCommand)
 
         // External Dependencies
@@ -166,8 +162,7 @@ struct AddModuleTests {
 
         #expect(subprocessRunAndCaptureCommands[1].command == .swift(.package(.showDependencies(format: .json))))
         #expect(subprocessRunAndCaptureCommands[2].workingDirectory == "/path/to/DependencyA")
-        #expect(operationProgresses[1].message == "Fetching external dependencies")
-        #expect(productDependenciesSelections[0].configuration.title.plain() == "External dependencies")
+        #expect(operationProgresses[1].message == "Fetching product dependencies")
         #expect(subprocessRunAndCaptureCommands[2].command == .swift(.package(.dumpPackage)))
         #expect(subprocessRunCommands[1].command == expectedAddProductCommand)
     }
@@ -298,37 +293,26 @@ struct AddModuleTests {
 
         // Then
         let context = try #require(AddModuleExecutionContext.current)
-        let targetDependenciesSelections = try #require(await context.nooraClientSpy.targetDependenciesSelections)
-        let productDependenciesSelections = try #require(await context.nooraClientSpy.productDependenciesSelections)
+        let dependenciesSelections = try #require(await context.nooraClientSpy.dependenciesSelections)
         let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
 
         #expect(operationProgresses.count == 2)
-        #expect(targetDependenciesSelections.count == 1)
-        #expect(productDependenciesSelections.count == 1)
+        #expect(dependenciesSelections.count == 1)
 
-        // Target Dependencies Prompt
-        let expectedTargets = [
-            TargetDependency(target: .init(name: "TargetA", type: .regular)),
-            TargetDependency(target: .init(name: "TargetB", type: .regular))
+        // Dependencies Prompt
+        let expectedDependencies: [PackageDependency] = [
+            .target(.init(name: "TargetA", type: .regular)),
+            .target(.init(name: "TargetB", type: .regular)),
+            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
+            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
         ]
-        let expectedTargetQuestion = "Which target dependencies would you like to include?"
+        let expectedQuestion = "Which dependencies would you like to include for the module target?"
 
         #expect(operationProgresses[0].message == "Fetching target dependencies")
-        #expect(targetDependenciesSelections[0].configuration.title.plain() == "Target dependencies")
-        #expect(targetDependenciesSelections[0].configuration.question.plain() == expectedTargetQuestion)
-        #expect(targetDependenciesSelections[0].options == expectedTargets)
-
-        // Product Dependencies Prompt
-        let expectedProducts = [
-            ProductDependency(product: .init(name: "ProductA", type: .library), packageName: "StubPackage"),
-            ProductDependency(product: .init(name: "ProductB", type: .library), packageName: "StubPackage")
-        ]
-        let expectedProductQuestion = "Which external dependencies would you like to include?"
-
-        #expect(operationProgresses[1].message == "Fetching external dependencies")
-        #expect(productDependenciesSelections[0].configuration.title.plain() == "External dependencies")
-        #expect(productDependenciesSelections[0].configuration.question.plain() == expectedProductQuestion)
-        #expect(productDependenciesSelections[0].options == expectedProducts)
+        #expect(operationProgresses[1].message == "Fetching product dependencies")
+        #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
+        #expect(dependenciesSelections[0].configuration.question.plain() == expectedQuestion)
+        #expect(dependenciesSelections[0].options == expectedDependencies)
     }
 
     // MARK: - Run - Error Handling

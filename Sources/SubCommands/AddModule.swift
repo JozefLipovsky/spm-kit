@@ -53,25 +53,15 @@ package struct AddModule: AsyncParsableCommand {
         let productType = await productType(nooraClient: nooraClient)
         let testingLibrary = await testingLibrary(nooraClient: nooraClient)
         let shouldSelectDependencies = await shouldSelectDependencies(nooraClient: nooraClient)
-        var dependencies: [any PackageDependency] = []
+        var dependencies: [PackageDependency] = []
 
         if shouldSelectDependencies {
-            let targetDependencies = try await targetDependencies(
+            dependencies = try await selectedDependencies(
                 productType: productType,
                 modulesPath: modulesPath,
                 nooraClient: nooraClient,
                 subprocessClient: subprocessClient
             )
-
-            let productDependencies = try await productDependencies(
-                productType: productType,
-                modulesPath: modulesPath,
-                nooraClient: nooraClient,
-                subprocessClient: subprocessClient
-            )
-
-            dependencies.append(contentsOf: targetDependencies)
-            dependencies.append(contentsOf: productDependencies)
         }
 
         try await addTarget(
@@ -163,64 +153,41 @@ private extension AddModule {
         )
     }
 
-    func targetDependencies(
+    func selectedDependencies(
         productType: ProductType,
         modulesPath: Path,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
-    ) async throws -> [any PackageDependency] {
-        let availableTargetDependencies = try await availableTargetDependencies(
+    ) async throws -> [PackageDependency] {
+        let path = modulesPath.string
+
+       let targets = try await availableTargetDependencies(
             productType: productType,
-            modulesPath: modulesPath.string,
+            modulesPath: path,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient
         )
 
-        guard availableTargetDependencies.isEmpty else {
-            return await nooraClient.targetDependenciesSelection(
+        let products = try await availableProductDependencies(
+            productType: productType,
+            modulesPath: path,
+            nooraClient: nooraClient,
+            subprocessClient: subprocessClient
+        )
+
+        let availableDependencies = targets + products
+        if availableDependencies.isEmpty {
+            await nooraClient.info("No compatible dependencies found.")
+            return []
+        } else {
+            return await nooraClient.dependenciesSelection(
                 configuration: NooraPromptConfiguration(
                     title: "Target dependencies",
-                    question: "Which target dependencies would you like to include?"
+                    question: "Which dependencies would you like to include for the module target?"
                 ),
-                options: availableTargetDependencies
+                options: availableDependencies
             )
         }
-
-        await nooraClient.info(
-            "No compatible target dependencies found for product type: \(productType.rawValue). Skipping selection."
-        )
-
-        return []
-    }
-
-    func productDependencies(
-        productType: ProductType,
-        modulesPath: Path,
-        nooraClient: NooraClient,
-        subprocessClient: SubprocessClient
-    ) async throws -> [any PackageDependency] {
-        let availableProductDependencies = try await availableProductDependencies(
-            productType: productType,
-            modulesPath: modulesPath.string,
-            nooraClient: nooraClient,
-            subprocessClient: subprocessClient
-        )
-
-        guard availableProductDependencies.isEmpty else {
-            return await nooraClient.productDependenciesSelection(
-                configuration: NooraPromptConfiguration(
-                    title: "External dependencies",
-                    question: "Which external dependencies would you like to include?"
-                ),
-                options: availableProductDependencies
-            )
-        }
-
-        await nooraClient.info(
-            "No compatible external dependencies found for product type: \(productType.rawValue). Skipping selection."
-        )
-
-        return []
     }
 
     func availableTargetDependencies(
@@ -228,18 +195,22 @@ private extension AddModule {
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
-    ) async throws -> [TargetDependency] {
+    ) async throws -> [PackageDependency] {
         try await nooraClient.operationProgress(message: "Fetching target dependencies") {
             let path = Path(modulesPath)
             let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
             switch productType {
                 case .library, .staticLibrary, .dynamicLibrary, .executable:
                     let targets = packageJSON.targets.filter { $0.type == .executable || $0.type == .regular }
-                    return targets.map { TargetDependency(target: $0) }.sorted { $0.description < $1.description }
+                    let result: [PackageDependency] = targets.map { .target($0) }.sorted {
+                        $0.description < $1.description
+                    }
+
+                    return result
                 case .plugin:
                     throw Error.unsupportedProductType(productType)
             }
-        } as? [TargetDependency] ?? []
+        } as? [PackageDependency] ?? []
     }
 
     func availableProductDependencies(
@@ -247,12 +218,12 @@ private extension AddModule {
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
-    ) async throws -> [ProductDependency] {
-        try await nooraClient.operationProgress(message: "Fetching external dependencies") {
+    ) async throws -> [PackageDependency] {
+        try await nooraClient.operationProgress(message: "Fetching product dependencies") {
             let path = Path(modulesPath)
             let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
 
-            var productDependencies: [ProductDependency] = []
+            var productDependencies: [PackageDependency] = []
             for dependency in dependencies.dependencies {
                 let path = dependency.path.path
                 let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
@@ -268,12 +239,12 @@ private extension AddModule {
                 }
 
                 productDependencies.append(
-                    contentsOf: products.map { ProductDependency(product: $0, packageName: packageJSON.name) }
+                    contentsOf: products.map { .product($0, packageName: packageJSON.name) }
                 )
             }
 
             return productDependencies.sorted { $0.description < $1.description }
-        } as? [ProductDependency] ?? []
+        } as? [PackageDependency] ?? []
     }
 }
 
@@ -339,7 +310,7 @@ private extension AddModule {
         moduleName: String,
         productType: ProductType,
         testingLibrary: TestingLibrary,
-        dependencies: [any PackageDependency],
+        dependencies: [PackageDependency],
         subprocessClient: SubprocessClient
     ) async throws {
         var targetType: TargetType
