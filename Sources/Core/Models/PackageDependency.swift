@@ -8,7 +8,7 @@
 import Foundation
 
 /// A dependency that can be added to a package target.
-package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
+package enum PackageDependency: Equatable, Sendable, CustomStringConvertible, Comparable {
     /// A target dependency within the same package.
     case target(PackageJSON.Target)
     /// A product dependency from an external package.
@@ -35,6 +35,7 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
         }
     }
 
+    /// CustomStringConvertible
     /// The textual representation of the dependency in a `Package.swift` file.
     package var description: String {
         switch self {
@@ -43,5 +44,11 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
             case .product(let product, let packageName):
                 return ".product(name: \"\(product.name)\", package: \"\(packageName)\")"
         }
+    }
+
+    /// Comparable
+    /// Used to sort dependencies description for Noora prompt input.
+    static package func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.description < rhs.description
     }
 }
