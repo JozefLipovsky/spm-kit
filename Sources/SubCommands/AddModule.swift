@@ -209,21 +209,12 @@ private extension AddModule {
         productType: ProductType,
         nooraClient: NooraClient
     ) async throws -> [PackageDependency] {
-        let compatibleDependencies = dependencies.filter { dependency in
-            switch dependency {
-                case .target(let target):
-                    return target.isCompatible(with: productType)
-                case .product:
-                    return true
-            }
-        }
-
-        return await nooraClient.dependenciesSelection(
+        await nooraClient.dependenciesSelection(
             configuration: NooraPromptConfiguration(
                 title: "Target dependencies",
                 question: "Which dependencies would you like to include for the module target?"
             ),
-            options: compatibleDependencies
+            options: dependencies.compatible(with: productType)
         )
     }
 
@@ -231,21 +222,12 @@ private extension AddModule {
         from dependencies: [PackageDependency],
         nooraClient: NooraClient
     ) async throws -> [PackageDependency] {
-        let compatibleDependencies = dependencies.filter { dependency in
-            switch dependency {
-                case .target(let target):
-                    return target.isCompatibleAsTestDependency()
-                case .product:
-                    return true
-            }
-        }
-
-        return await nooraClient.dependenciesSelection(
+        await nooraClient.dependenciesSelection(
             configuration: NooraPromptConfiguration(
                 title: "Test target dependencies",
                 question: "Which dependencies would you like to include for the module test target?"
             ),
-            options: compatibleDependencies
+            options: dependencies.compatibleWithTestTarget()
         )
     }
 
