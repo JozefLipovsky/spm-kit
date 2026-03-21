@@ -100,9 +100,12 @@ struct PackageJSONTests {
 
     @Test("Targets - compatible as test dependency")
     func targets_compatibleAsTestDependency() throws {
+        // Given
         let sut = try targetStubs()
-        
+
+        // When
         sut.forEach { target in
+            // Then
             switch target.type {
                 case .regular, .executable, .test:
                     #expect(target.isCompatibleAsTestDependency())
