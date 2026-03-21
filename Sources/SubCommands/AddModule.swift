@@ -326,14 +326,8 @@ private extension AddModule {
         testTargetDependencies: [PackageDependency],
         subprocessClient: SubprocessClient
     ) async throws {
-        var targetType: TargetType
-        switch productType {
-            case .library, .staticLibrary, .dynamicLibrary:
-                targetType = .library
-            case .executable:
-                targetType = .executable
-            case .plugin:
-                throw Error.unsupportedProductType(productType)
+        guard let targetType = productType.correspondingTargetType() else {
+            throw Error.unsupportedProductType(productType)
         }
 
         try await subprocessClient.run(
