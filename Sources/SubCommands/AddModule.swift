@@ -341,21 +341,12 @@ private extension AddModule {
             workingDirectory: path.systemFilePath
         )
 
-        for dependency in targetDependencies {
-            try await subprocessClient.run(
-                command: .swift(
-                    .package(
-                        .addTargetDependency(
-                            dependencyName: dependency.name,
-                            targetName: moduleName,
-                            package: dependency.package
-                        ),
-                        useCustomScratchPath: true
-                    )
-                ),
-                workingDirectory: path.systemFilePath
-            )
-        }
+        try await addTargetDependencies(
+            targetDependencies,
+            to: moduleName,
+            at: path,
+            subprocessClient: subprocessClient
+        )
 
         switch testingLibrary {
             case .swiftTesting, .xctest:
@@ -380,21 +371,13 @@ private extension AddModule {
                     workingDirectory: path.systemFilePath
                 )
 
-                for dependency in testTargetDependencies {
-                    try await subprocessClient.run(
-                        command: .swift(
-                            .package(
-                                .addTargetDependency(
-                                    dependencyName: dependency.name,
-                                    targetName: testTarget,
-                                    package: dependency.package
-                                ),
-                                useCustomScratchPath: true
-                            )
-                        ),
-                        workingDirectory: path.systemFilePath
-                    )
-                }
+                try await addTargetDependencies(
+                    testTargetDependencies,
+                    to: testTarget,
+                    at: path,
+                    subprocessClient: subprocessClient
+                )
+
             case .none:
                 break
         }
@@ -405,5 +388,28 @@ private extension AddModule {
             command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
             workingDirectory: path.systemFilePath
         )
+    }
+
+    func addTargetDependencies(
+        _ dependencies: [PackageDependency],
+        to targetName: String,
+        at path: Path,
+        subprocessClient: SubprocessClient
+    ) async throws {
+        for dependency in dependencies {
+            try await subprocessClient.run(
+                command: .swift(
+                    .package(
+                        .addTargetDependency(
+                            dependencyName: dependency.name,
+                            targetName: targetName,
+                            package: dependency.package
+                        ),
+                        useCustomScratchPath: true
+                    )
+                ),
+                workingDirectory: path.systemFilePath
+            )
+        }
     }
 }
