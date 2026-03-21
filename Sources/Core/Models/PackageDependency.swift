@@ -52,3 +52,32 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible, Co
         lhs.description < rhs.description
     }
 }
+
+extension [PackageDependency] {
+    /// Returns dependencies filtered by compatibility with the specified product type.
+    /// - Parameter productType: The product type to check compatibility against.
+    /// - Returns: Filtered array containing only compatible dependencies.
+    package func compatible(with productType: ProductType) -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatible(with: productType)
+                case .product:
+                    return true
+            }
+        }
+    }
+
+    /// Returns dependencies filtered by compatibility with test targets.
+    /// - Returns: Filtered array containing only test-target-compatible dependencies.
+    package func compatibleWithTestTarget() -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatibleAsTestDependency()
+                case .product:
+                    return true
+            }
+        }
+    }
+}
