@@ -50,7 +50,7 @@ extension PackageJSON {
 
 extension PackageJSON.Target {
     /// Defines the types of targets available in a `PackageJSON.Target`.
-    package enum TargetType: Decodable, Equatable, Sendable {
+    package enum TargetType: Decodable, Equatable, Sendable, CaseIterable {
         /// A regular target.
         case regular
         /// An executable target.
@@ -117,7 +117,7 @@ extension PackageJSON.Product {
 }
 
 extension PackageJSON.Target {
-    /// Checks whether a target is compatible as a dependency for the given product type.
+    /// Checks whether a target is compatible as a dependency for the given `ProductType`.
     package func isCompatible(with productType: ProductType) -> Bool {
         switch productType {
             case .library, .staticLibrary, .dynamicLibrary:
