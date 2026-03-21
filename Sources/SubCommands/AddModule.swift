@@ -43,11 +43,9 @@ package struct AddModule: AsyncParsableCommand {
         @Dependency(\.subprocessClient) var subprocessClient
 
         let currentPath = try pathClient.current()
-        let modulesPath = try await modulesPath(currentPath: currentPath, configClient: configClient)
-        let swiftFormatConfigPath = try await swiftFormatConfigPath(
-            currentPath: currentPath,
-            configClient: configClient
-        )
+        let configPath = try self.configPath(currentPath: currentPath)
+        let modulesPath = try await configClient.modulesPath(atConfigPath: configPath)
+        let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
 
         let moduleName = await moduleName(nooraClient: nooraClient)
         let productType = await productType(nooraClient: nooraClient)
@@ -274,20 +272,11 @@ private extension AddModule {
 // MARK: - Helpers
 
 private extension AddModule {
-    func modulesPath(currentPath: Path, configClient: ConfigClient) async throws -> Path {
+    func configPath(currentPath: Path) throws -> Path {
         guard let configPath = currentPath.ancestor(containing: "spm-kit-config.yaml") else {
             throw Error.configFileNotFound
         }
-
-        return try await configClient.modulesPath(atConfigPath: configPath)
-    }
-
-    func swiftFormatConfigPath(currentPath: Path, configClient: ConfigClient) async throws -> Path {
-        guard let configPath = currentPath.ancestor(containing: "spm-kit-config.yaml") else {
-            throw Error.configFileNotFound
-        }
-
-        return try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
+        return configPath
     }
 
     func packageJSON(atPath path: Path, subprocessClient: SubprocessClient) async throws -> PackageJSON {
