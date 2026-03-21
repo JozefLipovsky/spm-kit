@@ -122,16 +122,16 @@ extension PackageJSON.Target {
         switch productType {
             case .library, .staticLibrary, .dynamicLibrary:
                 switch type {
-                    case .regular, .test, .macro:
+                    case .executable, .regular, .macro:
                         return true
-                    case .executable, .other:
+                    case .other, .test:
                         return false
                 }
             case .executable:
                 switch type {
-                    case .regular, .executable, .test:
+                    case .regular, .executable:
                         return true
-                    case .macro, .other:
+                    case .macro, .other, .test:
                         return false
                 }
             case .plugin:
