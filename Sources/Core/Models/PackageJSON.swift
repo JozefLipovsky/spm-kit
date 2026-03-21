@@ -115,3 +115,37 @@ extension PackageJSON.Product {
         }
     }
 }
+
+extension PackageJSON.Target {
+    /// Checks whether a target is compatible as a dependency for the given product type.
+    package func isCompatible(with productType: ProductType) -> Bool {
+        switch productType {
+            case .library, .staticLibrary, .dynamicLibrary:
+                switch type {
+                    case .regular, .test, .macro:
+                        return true
+                    case .executable, .other:
+                        return false
+                }
+            case .executable:
+                switch type {
+                    case .regular, .executable, .test:
+                        return true
+                    case .macro, .other:
+                        return false
+                }
+            case .plugin:
+                return false
+        }
+    }
+
+    /// Checks whether a target is compatible as a dependency for a test target.
+    package func isCompatibleAsTestDependency() -> Bool {
+        switch type {
+            case .regular, .executable, .test:
+                return true
+            case .macro, .other:
+                return false
+        }
+    }
+}
