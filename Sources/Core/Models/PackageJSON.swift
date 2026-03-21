@@ -116,9 +116,9 @@ extension PackageJSON.Product {
     }
 }
 
-extension PackageJSON.Target {
+package extension PackageJSON.Target {
     /// Checks whether a target is compatible as a dependency for the given `ProductType`.
-    package func isCompatible(with productType: ProductType) -> Bool {
+    func isCompatible(with productType: ProductType) -> Bool {
         switch productType {
             case .library, .staticLibrary, .dynamicLibrary:
                 switch type {
@@ -140,7 +140,7 @@ extension PackageJSON.Target {
     }
 
     /// Checks whether a target is compatible as a dependency for a test target.
-    package func isCompatibleAsTestDependency() -> Bool {
+    func isCompatibleAsTestDependency() -> Bool {
         switch type {
             case .regular, .executable, .test:
                 return true
