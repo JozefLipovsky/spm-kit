@@ -169,41 +169,6 @@ private extension AddModule {
         )
     }
 
-    func selectedDependencies(
-        productType: ProductType,
-        modulesPath: Path,
-        nooraClient: NooraClient,
-        subprocessClient: SubprocessClient
-    ) async throws -> [PackageDependency] {
-        let path = modulesPath.string
-
-       let targets = try await fetchTargetDependencies(
-            modulesPath: path,
-            nooraClient: nooraClient,
-            subprocessClient: subprocessClient
-        )
-
-        let products = try await fetchProductDependencies(
-            modulesPath: path,
-            nooraClient: nooraClient,
-            subprocessClient: subprocessClient
-        )
-
-        let availableDependencies = targets + products
-        if availableDependencies.isEmpty {
-            await nooraClient.info("No compatible dependencies found.")
-            return []
-        } else {
-            return await nooraClient.dependenciesSelection(
-                configuration: NooraPromptConfiguration(
-                    title: "Target dependencies",
-                    question: "Which dependencies would you like to include for the module target?"
-                ),
-                options: availableDependencies
-            )
-        }
-    }
-
     func selectedTargetDependencies(
         from dependencies: [PackageDependency],
         productType: ProductType,
