@@ -202,7 +202,8 @@ private extension AddModule {
         return await nooraClient.dependenciesSelection(
             configuration: NooraPromptConfiguration(
                 title: "Test target dependencies",
-                question: "Which dependencies would you like to include for the module test target?"
+                question: "Which dependencies would you like to include for the module test target?",
+                description: "The new module's main target will be added automatically."
             ),
             options: compatibleDependencies
         )
