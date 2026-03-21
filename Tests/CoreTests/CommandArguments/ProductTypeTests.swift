@@ -60,4 +60,34 @@ struct ProductTypeTests {
         #expect(allValueStrings.contains("dynamic-library"))
         #expect(!allValueStrings.contains("plugin"))
     }
+
+    @Test(
+        "correspondingTargetType - library products - returns expected target type",
+        arguments: [ProductType.library, .staticLibrary, .dynamicLibrary]
+    )
+    func correspondingTargetType_libraryProducts_returnsLibraryTargetType(type: ProductType) {
+        // Given, When
+        let result = type.correspondingTargetType()
+
+        // Then
+        #expect(result == .library)
+    }
+
+    @Test("correspondingTargetType - executable product - returns executable target type")
+    func correspondingTargetType_executableProduct_returnsExecutableTargetType() {
+        // Given, When
+        let result = ProductType.executable.correspondingTargetType()
+
+        // Then
+        #expect(result == .executable)
+    }
+
+    @Test("correspondingTargetType - plugin product - returns nil")
+    func correspondingTargetType_pluginProduct_returnsNil() {
+        // Given, When
+        let result = ProductType.plugin.correspondingTargetType()
+
+        // Then
+        #expect(result == nil)
+    }
 }
