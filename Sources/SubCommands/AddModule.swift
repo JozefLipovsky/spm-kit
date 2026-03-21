@@ -66,6 +66,7 @@ package struct AddModule: AsyncParsableCommand {
             if !availableDependencies.isEmpty {
                 targetDependencies = try await selectedTargetDependencies(
                     from: availableDependencies,
+                    productType: productType,
                     nooraClient: nooraClient
                 )
 
@@ -205,14 +206,24 @@ private extension AddModule {
 
     func selectedTargetDependencies(
         from dependencies: [PackageDependency],
+        productType: ProductType,
         nooraClient: NooraClient
     ) async throws -> [PackageDependency] {
+        let compatibleDependencies = dependencies.filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatible(with: productType)
+                case .product:
+                    return true
+            }
+        }
+
         return await nooraClient.dependenciesSelection(
             configuration: NooraPromptConfiguration(
                 title: "Target dependencies",
                 question: "Which dependencies would you like to include for the module target?"
             ),
-            options: dependencies
+            options: compatibleDependencies
         )
     }
 
@@ -220,12 +231,21 @@ private extension AddModule {
         from dependencies: [PackageDependency],
         nooraClient: NooraClient
     ) async throws -> [PackageDependency] {
+        let compatibleDependencies = dependencies.filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatibleAsTestDependency()
+                case .product:
+                    return true
+            }
+        }
+
         return await nooraClient.dependenciesSelection(
             configuration: NooraPromptConfiguration(
                 title: "Test target dependencies",
                 question: "Which dependencies would you like to include for the module test target?"
             ),
-            options: dependencies
+            options: compatibleDependencies
         )
     }
 
