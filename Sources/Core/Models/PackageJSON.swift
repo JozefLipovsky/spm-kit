@@ -51,13 +51,13 @@ extension PackageJSON {
 extension PackageJSON.Target {
     /// Defines the types of targets available in a `PackageJSON.Target`.
     package enum TargetType: Decodable, Equatable, Sendable {
-        /// A target that contains code for the Swift package's functionality.
+        /// A regular target.
         case regular
-        /// A target that contains code for an executable's main module.
+        /// An executable target.
         case executable
-        /// A target that contains tests for the Swift package's other targets.
+        /// A test target.
         case test
-        /// A target that provides a Swift macro.
+        /// A macro target.
         case macro
         /// A `PackageDescription.Target` type that is not explicitly supported by `swift pacakge CLI`.
         case other
@@ -85,7 +85,7 @@ extension PackageJSON.Target {
 extension PackageJSON.Product {
     /// Defines the types of products available in a `PackageJSON.Product`.
     package enum ProductType: Equatable, Decodable, Sendable {
-        /// A library product (includes static, dynamic, automatic libraries).
+        /// A library product (includes static, dynamic).
         case library
         /// An executable product.
         case executable
