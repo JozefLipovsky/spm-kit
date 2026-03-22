@@ -15,7 +15,7 @@ struct SPMKit: AsyncParsableCommand {
         abstract: "A Swift command-line tool to manage SPM modular projects.",
         usage: nil,
         discussion: "",
-        version: "0.0.0",
+        version: "0.1.0",
         shouldDisplay: true,
         subcommands: [
             Bootstrap.self,
