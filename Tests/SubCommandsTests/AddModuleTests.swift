@@ -281,11 +281,7 @@ struct AddModuleTests {
     )
     func addModule_nooraDependencyPrompts_configuration() async throws {
         // Given
-        let arguments = [
-            "MyModule",
-            "--product-type", "library",
-            "--testing-library", "none"
-        ]
+        let arguments = ["MyModule", "--product-type", "library"]
         var sut = try AddModule.parse(arguments)
 
         // When
@@ -297,22 +293,38 @@ struct AddModuleTests {
         let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
 
         #expect(operationProgresses.count == 2)
-        #expect(dependenciesSelections.count == 1)
+        #expect(dependenciesSelections.count == 2)
 
-        // Dependencies Prompt
-        let expectedDependencies: [PackageDependency] = [
+        // Target Dependencies Prompt
+        let expectedTargetDependencies: [PackageDependency] = [
             .target(.init(name: "TargetA", type: .regular)),
             .target(.init(name: "TargetB", type: .regular)),
             .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
             .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
         ]
-        let expectedQuestion = "Which dependencies would you like to include for the module target?"
+        let expectedTargetQuestion = "Which dependencies would you like to include for the module target?"
 
         #expect(operationProgresses[0].message == "Fetching target dependencies")
-        #expect(operationProgresses[1].message == "Fetching product dependencies")
         #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
-        #expect(dependenciesSelections[0].configuration.question.plain() == expectedQuestion)
-        #expect(dependenciesSelections[0].options == expectedDependencies)
+        #expect(dependenciesSelections[0].configuration.question.plain() == expectedTargetQuestion)
+        #expect(dependenciesSelections[0].options == expectedTargetDependencies)
+
+        // Test Target Dependencies Prompt
+        let expectedTestTargetDependencies: [PackageDependency] = [
+            .target(.init(name: "TargetA", type: .regular)),
+            .target(.init(name: "TargetB", type: .regular)),
+            .target(.init(name: "TargetC", type: .test)),
+            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
+            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
+        ]
+        let expectedTestTargetQuestion = "Which dependencies would you like to include for the module test target?"
+        let expectedTestTargetDescription = "The new module's main target will be added automatically."
+
+        #expect(operationProgresses[1].message == "Fetching product dependencies")
+        #expect(dependenciesSelections[1].configuration.title.plain() == "Test target dependencies")
+        #expect(dependenciesSelections[1].configuration.question.plain() == expectedTestTargetQuestion)
+        #expect(dependenciesSelections[1].configuration.description?.plain() == expectedTestTargetDescription)
+        #expect(dependenciesSelections[1].options == expectedTestTargetDependencies)
     }
 
     // MARK: - Run - Error Handling

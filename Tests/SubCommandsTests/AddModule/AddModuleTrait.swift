@@ -226,6 +226,10 @@ extension AddModuleTrait.SubprocessClientStubs {
             {
               "name": "TargetB",
               "type": "regular"
+            },
+            {
+              "name": "TargetC",
+              "type": "test"
             }
           ]
         }
