@@ -136,6 +136,7 @@ OPTIONS:
 
 ### Homebrew
 ```
+brew install JozefLipovsky/tap/spm-kit
 ```
 
 ## Quick Start
