@@ -7,6 +7,15 @@
 
 spm-kit is a simple command-line tool built with Swift. It helps you create and maintain modular Xcode projects where most of the code lives in Swift Package Manager (SPM) modules.
 
+## Table of Contents
+
+- [Motivation](#motivation)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Dependencies](#dependencies)
+
 ## Motivation
 
 The tool was created to quickly bootstrap minimal projects for prototypes or projects. It was inspired by modular architectures shown in [Point-Free](https://www.pointfree.co) and [SwiftyStack](https://www.swiftystack.com) tutorials.
