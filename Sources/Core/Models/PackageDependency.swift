@@ -8,7 +8,7 @@
 import Foundation
 
 /// A dependency that can be added to a package target.
-package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
+package enum PackageDependency: Equatable, Sendable, CustomStringConvertible, Comparable {
     /// A target dependency within the same package.
     case target(PackageJSON.Target)
     /// A product dependency from an external package.
@@ -35,6 +35,7 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
         }
     }
 
+    /// CustomStringConvertible
     /// The textual representation of the dependency in a `Package.swift` file.
     package var description: String {
         switch self {
@@ -42,6 +43,41 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible {
                 return ".target(name: \"\(target.name)\")"
             case .product(let product, let packageName):
                 return ".product(name: \"\(product.name)\", package: \"\(packageName)\")"
+        }
+    }
+
+    /// Comparable
+    /// Used to sort dependencies description for Noora prompt input.
+    static package func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.description < rhs.description
+    }
+}
+
+package extension [PackageDependency] {
+    /// Returns dependencies filtered by compatibility with the specified product type.
+    /// - Parameter productType: The product type to check compatibility against.
+    /// - Returns: Filtered array containing only compatible dependencies.
+    func compatible(with productType: ProductType) -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatible(with: productType)
+                case .product:
+                    return true
+            }
+        }
+    }
+
+    /// Returns dependencies filtered by compatibility with test targets.
+    /// - Returns: Filtered array containing only test-target-compatible dependencies.
+    func compatibleWithTestTarget() -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.isCompatibleAsTestDependency()
+                case .product:
+                    return true
+            }
         }
     }
 }

@@ -84,5 +84,6 @@ let package = Package(
             name: "TestHelpers",
             path: "Tests/TestHelpers"
         )
-    ]
+    ],
+    swiftLanguageModes: [.v6]
 )

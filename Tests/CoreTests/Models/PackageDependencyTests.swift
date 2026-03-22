@@ -84,30 +84,69 @@ struct PackageDependencyTests {
         // Then
         #expect(sut.description == ".product(name: \"TestProduct\", package: \"TestPackage\")")
     }
+
+    @Test("Dependencies - compatible with product type - products always pass through")
+    func dependencies_compatibleWithProductType_productsAlwaysPassThrough() throws {
+        // Given
+        let productDependencies = try productOnlyDependenciesStub()
+        #expect(productDependencies.count == 3)
+
+        // When
+        let sut = productDependencies.compatible(with: .library)
+
+        // Then
+        #expect(sut == productDependencies)
+        #expect(sut.count == 3)
+    }
+
+    @Test("Dependencies - compatibleWithTestTarget - products always pass through")
+    func dependencies_compatibleWithTestTarget_productsAlwaysPassThrough() throws {
+        // Given
+        let productDependencies = try productOnlyDependenciesStub()
+        #expect(productDependencies.count == 3)
+
+        // When
+        let sut = productDependencies.compatibleWithTestTarget()
+
+        // Then
+        #expect(sut == productDependencies)
+        #expect(sut.count == 3)
+    }
 }
 
 private extension PackageDependencyTests {
     func targetStub(name: String = "TestTarget") throws -> PackageJSON.Target {
-        let targetJSON = """
+        let targetJSON = Data(
+            """
             {
                 "name": "\(name)",
                 "type": "regular"
             }
-            """
+            """.utf8
+        )
 
-        let targetData = try #require(targetJSON.data(using: .utf8))
-        return try JSONDecoder().decode(PackageJSON.Target.self, from: targetData)
+        return try JSONDecoder().decode(PackageJSON.Target.self, from: targetJSON)
     }
 
     func productStub(name: String = "TestProduct") throws -> PackageJSON.Product {
-        let productJSON = """
+        let productJSON = Data(
+            """
             {
                 "name": "\(name)",
                 "type": { "library": ["automatic"] }
             }
-            """
+            """.utf8
+        )
 
-        let productData = try #require(productJSON.data(using: .utf8))
-        return try JSONDecoder().decode(PackageJSON.Product.self, from: productData)
+        return try JSONDecoder().decode(PackageJSON.Product.self, from: productJSON)
+    }
+
+    func productOnlyDependenciesStub() throws -> [PackageDependency] {
+        let productStub = try productStub()
+        return [
+            .product(productStub, packageName: "product A"),
+            .product(productStub, packageName: "product B"),
+            .product(productStub, packageName: "product C")
+        ]
     }
 }

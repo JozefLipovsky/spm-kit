@@ -15,13 +15,13 @@ struct PackageJSONTests {
     @Test("Decodable - with valid JSON - decodes targets and product types")
     func decodable_withValidJSON_decodesTargetsAndProductTypes() throws {
         // Given, When
-        let sut = try JSONDecoder().decode(PackageJSON.self, from: jsonStub)
+        let sut = try packageStub()
 
         // Then
         #expect(sut.name == "StubPackage")
 
         #expect(sut.products.count == 6)
-        #expect(sut.products[0].name == "AutomaticLibrary")
+        #expect(sut.products[0].name == "Library")
         #expect(sut.products[0].type == .library)
         #expect(sut.products[1].name == "StaticLibrary")
         #expect(sut.products[1].type == .library)
@@ -34,118 +34,95 @@ struct PackageJSONTests {
         #expect(sut.products[5].name == "Other")
         #expect(sut.products[5].type == .other)
 
-        #expect(sut.targets.count == 4)
+        #expect(sut.targets.count == 5)
+        #expect(sut.targets.count == PackageJSON.Target.TargetType.allCases.count)
         #expect(sut.targets[0].name == "RegularTarget")
         #expect(sut.targets[0].type == .regular)
         #expect(sut.targets[1].name == "TestTarget")
         #expect(sut.targets[1].type == .test)
         #expect(sut.targets[2].name == "MacroTarget")
         #expect(sut.targets[2].type == .macro)
-        #expect(sut.targets[3].name == "BinaryTarget")
-        #expect(sut.targets[3].type == .other)
+        #expect(sut.targets[3].name == "ExecutableTarget")
+        #expect(sut.targets[3].type == .executable)
+        #expect(sut.targets[4].name == "OtherTarget")
+        #expect(sut.targets[4].type == .other)
+    }
+
+    @Test("Targets - compatible - with command argument library product types")
+    func targets_compatible_withCommandArgumentLibraryProductTypes() throws {
+        // Given
+        let sut = try targetStubs()
+
+        // When
+        sut.forEach { target in
+            // Then
+            switch target.type {
+                case .executable, .regular, .macro:
+                    #expect(target.isCompatible(with: .library))
+                    #expect(target.isCompatible(with: .staticLibrary))
+                    #expect(target.isCompatible(with: .dynamicLibrary))
+                case .other, .test:
+                    #expect(!target.isCompatible(with: .library))
+                    #expect(!target.isCompatible(with: .staticLibrary))
+                    #expect(!target.isCompatible(with: .dynamicLibrary))
+            }
+        }
+    }
+
+    @Test("Targets - compatible - with command argument executable product type")
+    func targets_compatible_withCommandArgumentExecutableProductType() throws {
+        // Given
+        let sut = try targetStubs()
+
+        // When
+        sut.forEach { target in
+            // Then
+            switch target.type {
+                case .executable, .regular:
+                    #expect(target.isCompatible(with: .executable))
+                case .macro, .other, .test:
+                    #expect(!target.isCompatible(with: .executable))
+            }
+        }
+    }
+
+    @Test("Targets - compatible - with command argument plugin product type")
+    func targets_compatible_withCommandArgumentPluginProductType() throws {
+        // Given
+        let sut = try targetStubs()
+
+        // When
+        sut.forEach { target in
+            // Then
+            #expect(!target.isCompatible(with: .plugin))
+        }
+    }
+
+    @Test("Targets - compatible as test dependency")
+    func targets_compatibleAsTestDependency() throws {
+        // Given
+        let sut = try targetStubs()
+
+        // When
+        sut.forEach { target in
+            // Then
+            switch target.type {
+                case .regular, .executable, .test:
+                    #expect(target.isCompatibleAsTestDependency())
+                case .macro, .other:
+                    #expect(!target.isCompatibleAsTestDependency())
+            }
+        }
     }
 }
 
 private extension PackageJSONTests {
-    var jsonStub: Data {
-        Data(
-            """
-            {
-              "cLanguageStandard": null,
-              "dependencies": [],
-              "name" : "StubPackage",
-              "products": [
-                {
-                  "name": "AutomaticLibrary",
-                  "settings": [],
-                  "targets": [
-                    "AutomaticLibraryTarget"
-                  ],
-                  "type": {
-                    "library": [
-                      "automatic"
-                    ]
-                  }
-                },
-                {
-                  "name": "StaticLibrary",
-                  "settings": [],
-                  "targets": [
-                    "StaticLibraryTarget"
-                  ],
-                  "type": {
-                    "library": [
-                      "static"
-                    ]
-                  }
-                },
-                {
-                  "name": "DynamicLibrary",
-                  "settings": [],
-                  "targets": [
-                    "DynamicLibraryTarget"
-                  ],
-                  "type": {
-                    "library": [
-                      "dynamic"
-                    ]
-                  }
-                },
-                {
-                  "name": "Executable",
-                  "settings": [],
-                  "targets": [
-                    "ExecutableTarget"
-                  ],
-                  "type": {
-                    "executable": null
-                  }
-                },
-                {
-                  "name": "Plugin",
-                  "settings": [],
-                  "targets": [
-                    "PluginTarget"
-                  ],
-                  "type": {
-                    "plugin": null
-                  }
-                },
-                {
-                  "name": "Other",
-                  "settings": [],
-                  "targets": [
-                    "Other"
-                  ],
-                  "type": {
-                    "unknown": null
-                  }
-                }
-              ],
-              "targets": [
-                {
-                  "name": "RegularTarget",
-                  "type": "regular",
-                  "path": "Sources/RegularTarget"
-                },
-                {
-                  "name": "TestTarget",
-                  "type": "test",
-                  "resources": []
-                },
-                {
-                  "name": "MacroTarget",
-                  "type": "macro"
-                },
-                {
-                  "name": "BinaryTarget",
-                  "type": "binary",
-                  "checksum": "12345"
-                }
-              ],
-              "toolsVersion": { "_version": "6.2.0" }
-            }
-            """.utf8
-        )
+    func targetStubs() throws -> [PackageJSON.Target] {
+        try packageStub().targets
+    }
+
+    func packageStub() throws -> PackageJSON {
+        try JSONDecoder().decode(PackageJSON.self, from: PackageJSON.stub)
     }
 }
+

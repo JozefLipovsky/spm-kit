@@ -37,3 +37,18 @@ package enum ProductType: String, CaseIterable, CustomStringConvertible, Express
         [.library, .staticLibrary, .dynamicLibrary, .executable]
     }
 }
+
+package extension ProductType {
+    /// Returns the corresponding `TargetType` for this product type.
+    /// Returns `nil` for unsupported product types.
+    func correspondingTargetType() -> TargetType? {
+        switch self {
+            case .library, .staticLibrary, .dynamicLibrary:
+                return .library
+            case .executable:
+                return .executable
+            case .plugin:
+                return nil
+        }
+    }
+}
