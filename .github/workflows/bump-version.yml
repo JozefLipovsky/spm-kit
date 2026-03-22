@@ -36,7 +36,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add Sources/SPMKit/SPMKit.swift
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git commit -m "Workflow automation - bump version to ${{ steps.bump.outputs.new_version }}"
 
           git tag -a "$VERSION" -m "Release $VERSION"
 
