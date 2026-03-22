@@ -1,6 +1,6 @@
 # spm-kit
 
-[![Swift Test](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml/badge.svg)](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml)
+[![CI](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml/badge.svg)](https://github.com/JozefLipovsky/spm-kit/actions/workflows/test.yml)
 ![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138.svg?style=flat&logo=swift)
 ![macOS 26.0](https://img.shields.io/badge/macOS-26.0-lightgray.svg?style=flat&logo=apple)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
