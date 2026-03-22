@@ -1,0 +1,8 @@
+version: 1
+builder:
+  configs:
+    - platform: macos-spm
+      swift_version: "6.2"
+      documentation_targets:
+        - Core
+        - SubCommands
