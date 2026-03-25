@@ -29,8 +29,8 @@ jobs:
     - name: Compress build archives
       run: |
         VERSION=${{ github.ref_name }}
-        tar -czf spm-kit-${VERSION}-macos-arm64.tar.gz -C .build/arm64-apple-macosx/release spm-kit
-        tar -czf spm-kit-${VERSION}-macos-x86_64.tar.gz -C .build/x86_64-apple-macosx/release spm-kit
+        tar -czf spm-kit-${VERSION}-macos-arm64.tar.gz -C .build/arm64-apple-macosx/release spm-kit SPMKit_Core.bundle
+        tar -czf spm-kit-${VERSION}-macos-x86_64.tar.gz -C .build/x86_64-apple-macosx/release spm-kit SPMKit_Core.bundle
 
     - name: Release
       uses: softprops/action-gh-release@v2

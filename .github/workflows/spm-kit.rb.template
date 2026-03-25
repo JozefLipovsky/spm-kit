@@ -13,7 +13,9 @@ class SpmKit < Formula
     end
 
     def install
-        bin.install "spm-kit"
+        libexec.install "spm-kit"
+        libexec.install "SPMKit_Core.bundle"
+        bin.install_symlink libexec/"spm-kit" => "spm-kit"
     end
 
     test do
