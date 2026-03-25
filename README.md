@@ -77,7 +77,8 @@ Bootsraped project structure:
 > [!IMPORTANT]
 > You will need to manually configure code signing for each platform target in Xcode after the project is created.
 
-![code-signing](https://github.com/user-attachments/assets/5875f320-e0da-4e2b-94b5-0233fd6dc7fd)
+![00-code-signing](https://github.com/user-attachments/assets/e90122ff-e1c4-4af8-b8cd-d6a273879504)
+
 
 
 ```
