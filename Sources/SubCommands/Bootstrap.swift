@@ -283,12 +283,12 @@ private extension Bootstrap {
         try await packageEditorClient.add(platforms: selectedPlatforms, toManifestAt: packageManifestPath)
 
         try await subprocessClient.run(
-            command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
+            command: .swift(.package(.addTarget(name: rootModule))),
             workingDirectory: modulesPath.systemFilePath
         )
 
         try await subprocessClient.run(
-            command: .swift(.package(.addTarget(name: rootModule))),
+            command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
             workingDirectory: modulesPath.systemFilePath
         )
 
