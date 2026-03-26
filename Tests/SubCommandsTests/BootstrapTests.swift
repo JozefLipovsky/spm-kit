@@ -163,8 +163,8 @@ struct BootstrapTests {
         #expect(packageEdits[0].platform.identifier == "iOS")
         #expect(packageEdits[0].version == "v26")
         #expect(packageEdits[0].path.hasSuffix("/Modules/Package.swift"))
-        #expect(commands[4].command == addProductCommand)
-        #expect(commands[5].command == .swift(.package(.addTarget(name: rootModule, type: .library))))
+        #expect(commands[4].command == .swift(.package(.addTarget(name: rootModule, type: .library))))
+        #expect(commands[5].command == addProductCommand)
         #expect(commands[6].command == addTestTargetCommand)
         #expect(commands[7].command == addTargetDependencyCommand)
 
