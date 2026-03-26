@@ -5,9 +5,17 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - v*.*.*
+  workflow_dispatch:
+    inputs:
+      bump_level:
+        description: 'Select the version bump level'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
   release:
@@ -16,10 +24,27 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: swift-actions/setup-swift@v3
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v3
       with:
         swift-version: '6.2.3'
+
+    - name: Bump version
+      id: bump
+      run: ./scripts/bump-version.sh ${{ github.event.inputs.bump_level }}
+
+    - name: Commit version bump
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add Sources/SPMKit/SPMKit.swift
+        git commit -m "Bump version to ${{ steps.bump.outputs.new_version }}"
 
     - name: Build for release
       run: |
@@ -28,20 +53,32 @@ jobs:
 
     - name: Compress build archives
       run: |
-        VERSION=${{ github.ref_name }}
+        VERSION=v${{ steps.bump.outputs.new_version }}
         tar -czf spm-kit-${VERSION}-macos-arm64.tar.gz -C .build/arm64-apple-macosx/release spm-kit SPMKit_Core.bundle
         tar -czf spm-kit-${VERSION}-macos-x86_64.tar.gz -C .build/x86_64-apple-macosx/release spm-kit SPMKit_Core.bundle
 
-    - name: Release
+    - name: Create and push tag
+      run: |
+        VERSION=v${{ steps.bump.outputs.new_version }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$VERSION" -m "Release $VERSION"
+        git push origin "$VERSION"
+
+    - name: Push version commit
+      run: |
+        git push origin main
+
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: spm-kit-${{ github.ref_name }}-macos-*.tar.gz
+        files: spm-kit-v${{ steps.bump.outputs.new_version }}-macos-*.tar.gz
         generate_release_notes: true
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Update homebrew formula
       run: |
-        VERSION=${{ github.ref_name }}
+        VERSION=v${{ steps.bump.outputs.new_version }}
         VERSION_NUM=${VERSION#v}
 
         # Calculate Checksums
