@@ -6,3 +6,6 @@ builder:
       documentation_targets:
         - Core
         - SubCommands
+      custom_documentation_parameters:
+        - --symbol-graph-minimum-access-level
+        - package
