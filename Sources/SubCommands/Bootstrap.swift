@@ -77,7 +77,8 @@ package struct Bootstrap: AsyncParsableCommand {
             try await copyProjectTemplates(
                 to: projectBasePath,
                 subprocessClient: subprocessClient,
-                resourcesClient: resourcesClient
+                resourcesClient: resourcesClient,
+                nooraClient: nooraClient
             )
 
             try await configurePackage(
@@ -237,27 +238,40 @@ private extension Bootstrap {
     func copyProjectTemplates(
         to projectBasePath: Path,
         subprocessClient: SubprocessClient,
-        resourcesClient: ResourcesClient
+        resourcesClient: ResourcesClient,
+        nooraClient: NooraClient
     ) async throws {
         let projectRootDirectory = ProjectDirectory.root()
+        let projectBasePathString = projectBasePath.systemFilePath
 
-        let xcodeProjectTemplate = try await resourcesClient.templateItem(type: .xcodeProject)
-        try await subprocessClient.run(
-            command: .update(.copy(xcodeProjectTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Copying project templates",
+            successMessage: "Project templates copied",
+            errorMessage: "Project templates copy failed"
+        ) { messageUpdate in
+            messageUpdate("Copying Xcode project template")
+            let xcodeProjectTemplate = try await resourcesClient.templateItem(type: .xcodeProject)
+            try await subprocessClient.run(
+                command: .update(.copy(xcodeProjectTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
 
-        let spmKitConfigTemplate = try await resourcesClient.templateItem(type: .spmKitConfig)
-        try await subprocessClient.run(
-            command: .update(.copy(spmKitConfigTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+            messageUpdate("Copying SPM Kit config template")
+            let spmKitConfigTemplate = try await resourcesClient.templateItem(type: .spmKitConfig)
+            try await subprocessClient.run(
+                command: .update(.copy(spmKitConfigTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
 
-        let swiftFormatConfigTemplate = try await resourcesClient.templateItem(type: .swiftFormatConfig)
-        try await subprocessClient.run(
-            command: .update(.copy(swiftFormatConfigTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+            messageUpdate("Copying Swift Format config template")
+            let swiftFormatConfigTemplate = try await resourcesClient.templateItem(type: .swiftFormatConfig)
+            try await subprocessClient.run(
+                command: .update(.copy(swiftFormatConfigTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
+
+            return ()
+        }
     }
 
     func configurePackage(
