@@ -89,7 +89,7 @@ struct AddModuleTrait: TestTrait, TestScoping {
                 )
                 return nooraClientStubs.dependencies
             }
-            $0.nooraClient.operationProgress = { message, operation in
+            $0.nooraClient.progress = { message, operation in
                 await executionContext.nooraClientSpy.recordOperationProgress(message: message)
                 return try await operation()
             }

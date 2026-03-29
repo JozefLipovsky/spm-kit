@@ -212,7 +212,7 @@ private extension AddModule {
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.operationProgress(message: "Fetching target dependencies") {
+        try await nooraClient.progress(message: "Fetching target dependencies") {
             let path = Path(modulesPath)
             let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
             return packageJSON.targets.map { PackageDependency.target($0) }.sorted()
@@ -224,7 +224,7 @@ private extension AddModule {
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.operationProgress(message: "Fetching product dependencies") {
+        try await nooraClient.progress(message: "Fetching product dependencies") {
             let path = Path(modulesPath)
             let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
 

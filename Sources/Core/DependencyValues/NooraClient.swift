@@ -65,7 +65,7 @@ package struct NooraClient: Sendable {
     ///   - message: The message to display with the spinner.
     ///   - operation: The asynchronous operation to execute.
     /// - Returns: The result of the operation.
-    package var operationProgress:
+    package var progress:
         @Sendable (
             _ message: String,
             _ operation: @escaping @Sendable () async throws -> any Sendable
@@ -132,7 +132,7 @@ extension NooraClient: DependencyKey {
 
                 return argument
             },
-            operationProgress: { message, operation in
+            progress: { message, operation in
                 try await Noora().progressStep(message: message) { _ in
                     try await operation()
                 }
