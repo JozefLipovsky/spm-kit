@@ -207,24 +207,32 @@ private extension AddModule {
         )
     }
 
-    func fetchTargetDependencies(
+    func parseTargetDependencies(
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.progress(message: "Fetching target dependencies") {
+        try await nooraClient.progress(
+            message: "Parsing target dependencies",
+            successMessage: "Target dependencies parsed",
+            errorMessage: "Target dependencies parse failed"
+        ) { _ in
             let path = Path(modulesPath)
             let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
             return packageJSON.targets.map { PackageDependency.target($0) }.sorted()
         } as? [PackageDependency] ?? []
     }
 
-    func fetchProductDependencies(
+    func parseProductDependencies(
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.progress(message: "Fetching product dependencies") {
+        try await nooraClient.progress(
+            message: "Parsing product dependencies",
+            successMessage: "Product dependencies parsed",
+            errorMessage: "Product dependencies parse failed"
+        ) { _ in
             let path = Path(modulesPath)
             let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
 
@@ -247,13 +255,13 @@ private extension AddModule {
     ) async throws -> [PackageDependency] {
         let path = modulesPath.string
 
-        let targets = try await fetchTargetDependencies(
+        let targets = try await parseTargetDependencies(
             modulesPath: path,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient
         )
 
-        let products = try await fetchProductDependencies(
+        let products = try await parseProductDependencies(
             modulesPath: path,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient
