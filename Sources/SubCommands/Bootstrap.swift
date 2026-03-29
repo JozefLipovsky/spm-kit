@@ -86,7 +86,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 testingLibrary: testingLibrary,
                 subprocessClient: subprocessClient,
-                packageEditorClient: packageEditorClient
+                packageEditorClient: packageEditorClient,
+                nooraClient: nooraClient
             )
 
             try await configureRootModule(
@@ -265,61 +266,83 @@ private extension Bootstrap {
         rootModule: String,
         testingLibrary: TestingLibrary,
         subprocessClient: SubprocessClient,
-        packageEditorClient: PackageEditorClient
+        packageEditorClient: PackageEditorClient,
+        nooraClient: NooraClient
     ) async throws {
         let modulesDirectory = ProjectDirectory.modules()
         let modulesPath = projectBasePath + modulesDirectory.pathString
-
-        let minToolsVersion = selectedPlatforms.min { $0.toolsVersion < $1.toolsVersion }
-        if let minToolsVersionIdentifier = minToolsVersion?.toolsVersionIdentifier {
-            try await subprocessClient.run(
-                command: .swift(.package(.setToolsVersion(version: minToolsVersionIdentifier))),
-                workingDirectory: modulesPath.systemFilePath
-            )
-        }
+        let modulesPathString = modulesPath.string
 
         let packageManifestDirectory = ProjectDirectory.modules(.packageManifest)
         let packageManifestPath = projectBasePath + packageManifestDirectory.pathString
-        try await packageEditorClient.add(platforms: selectedPlatforms, toManifestAt: packageManifestPath)
+        let packageManifestPathString = packageManifestPath.string
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addTarget(name: rootModule))),
-            workingDirectory: modulesPath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Configuring Package.swift",
+            successMessage: "Package.swift configured",
+            errorMessage: "Package.swift configuration failed"
+        ) { messageUpdate in
+            let modulesDirectory = Path(modulesPathString).systemFilePath
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
-            workingDirectory: modulesPath.systemFilePath
-        )
-
-        switch testingLibrary {
-            case .swiftTesting, .xctest:
-                let addTargetSubcommand = ShellCommand.SwiftSubCommand.PackageSubCommand.addTarget(
-                    name: rootModule + "Tests",
-                    type: .test,
-                    testingLibrary: testingLibrary
-                )
-
+            messageUpdate("Setting minimum supported Swift version")
+            let minToolsVersion = selectedPlatforms.min { $0.toolsVersion < $1.toolsVersion }
+            if let minToolsVersionIdentifier = minToolsVersion?.toolsVersionIdentifier {
                 try await subprocessClient.run(
-                    command: .swift(.package(addTargetSubcommand, useCustomScratchPath: true)),
-                    workingDirectory: modulesPath.systemFilePath
+                    command: .swift(.package(.setToolsVersion(version: minToolsVersionIdentifier))),
+                    workingDirectory: modulesDirectory
                 )
+            }
 
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTargetDependency(
-                                dependencyName: rootModule,
-                                targetName: rootModule + "Tests",
-                                package: nil
-                            ),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: modulesPath.systemFilePath
-                )
-            case .none:
-                break
+            messageUpdate("Adding selected platforms")
+            try await packageEditorClient.add(
+                platforms: selectedPlatforms,
+                toManifestAt: Path(packageManifestPathString)
+            )
+
+            messageUpdate("Adding root module target")
+            try await subprocessClient.run(
+                command: .swift(.package(.addTarget(name: rootModule))),
+                workingDirectory: modulesDirectory
+            )
+
+            messageUpdate("Adding root module product")
+            try await subprocessClient.run(
+                command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
+                workingDirectory: modulesDirectory
+            )
+
+            switch testingLibrary {
+                case .swiftTesting, .xctest:
+                    messageUpdate("Adding root module test target")
+                    let addTargetSubcommand = ShellCommand.SwiftSubCommand.PackageSubCommand.addTarget(
+                        name: rootModule + "Tests",
+                        type: .test,
+                        testingLibrary: testingLibrary
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(.package(addTargetSubcommand, useCustomScratchPath: true)),
+                        workingDirectory: modulesDirectory
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTargetDependency(
+                                    dependencyName: rootModule,
+                                    targetName: rootModule + "Tests",
+                                    package: nil
+                                ),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: modulesDirectory
+                    )
+                case .none:
+                    break
+            }
+
+            return ()
         }
     }
 
