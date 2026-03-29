@@ -92,7 +92,11 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
 
             // When
-            let output = try await sut.progress(message: "Message") { "OperationStub" }
+            let output = try await sut.progress(
+                message: "Message",
+                successMessage: "Success",
+                errorMessage: "Error"
+            ) { _ in "OperationStub" }
 
             // Then
             #expect(output as? String == "OperationStub")

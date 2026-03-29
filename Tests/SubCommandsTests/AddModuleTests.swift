@@ -17,8 +17,8 @@ import Testing
 @Suite("AddModule Tests", .tags(.unit))
 struct AddModuleTests {
 
-    @Test("run() - with default arguments - executes all client calls", .addModuleEnvironmentMock())
-    func run_withDefaultArguments_executesAllClientCalls() async throws {
+    @Test("run() - with default arguments - executes espected client calls", .addModuleEnvironmentMock())
+    func run_withDefaultArguments_executesExpectedClientCalls() async throws {
         // Given
         let arguments = [
             "ModuleStub",
@@ -147,7 +147,9 @@ struct AddModuleTests {
 
         #expect(subprocessRunAndCaptureCommands[0].command == .swift(.package(.dumpPackage)))
         #expect(subprocessRunAndCaptureCommands[0].workingDirectory == "/fake/path/to/ModulesStub")
-        #expect(operationProgresses[0].message == "Fetching target dependencies")
+        #expect(operationProgresses[0].message == "Parsing target dependencies")
+        #expect(operationProgresses[0].successMessage == "Target dependencies parsed")
+        #expect(operationProgresses[0].errorMessage == "Target dependencies parse failed")
         #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
         #expect(subprocessRunCommands[0].command == expectedAddTargetCommand)
 
@@ -162,7 +164,9 @@ struct AddModuleTests {
 
         #expect(subprocessRunAndCaptureCommands[1].command == .swift(.package(.showDependencies(format: .json))))
         #expect(subprocessRunAndCaptureCommands[2].workingDirectory == "/path/to/DependencyA")
-        #expect(operationProgresses[1].message == "Fetching product dependencies")
+        #expect(operationProgresses[1].message == "Parsing product dependencies")
+        #expect(operationProgresses[1].successMessage == "Product dependencies parsed")
+        #expect(operationProgresses[1].errorMessage == "Product dependencies parse failed")
         #expect(subprocessRunAndCaptureCommands[2].command == .swift(.package(.dumpPackage)))
         #expect(subprocessRunCommands[1].command == expectedAddProductCommand)
     }
@@ -304,7 +308,9 @@ struct AddModuleTests {
         ]
         let expectedTargetQuestion = "Which dependencies would you like to include for the module target?"
 
-        #expect(operationProgresses[0].message == "Fetching target dependencies")
+        #expect(operationProgresses[0].message == "Parsing target dependencies")
+        #expect(operationProgresses[0].successMessage == "Target dependencies parsed")
+        #expect(operationProgresses[0].errorMessage == "Target dependencies parse failed")
         #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
         #expect(dependenciesSelections[0].configuration.question.plain() == expectedTargetQuestion)
         #expect(dependenciesSelections[0].options == expectedTargetDependencies)
@@ -320,7 +326,9 @@ struct AddModuleTests {
         let expectedTestTargetQuestion = "Which dependencies would you like to include for the module test target?"
         let expectedTestTargetDescription = "The new module's main target will be added automatically."
 
-        #expect(operationProgresses[1].message == "Fetching product dependencies")
+        #expect(operationProgresses[1].message == "Parsing product dependencies")
+        #expect(operationProgresses[1].successMessage == "Product dependencies parsed")
+        #expect(operationProgresses[1].errorMessage == "Product dependencies parse failed")
         #expect(dependenciesSelections[1].configuration.title.plain() == "Test target dependencies")
         #expect(dependenciesSelections[1].configuration.question.plain() == expectedTestTargetQuestion)
         #expect(dependenciesSelections[1].configuration.description?.plain() == expectedTestTargetDescription)
