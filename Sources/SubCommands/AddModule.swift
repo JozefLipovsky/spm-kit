@@ -99,7 +99,8 @@ package struct AddModule: AsyncParsableCommand {
         try await runSwiftFormat(
             at: currentPath,
             swiftFormatConfigPath: swiftFormatConfigPath.string,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
     }
 }
@@ -417,11 +418,26 @@ private extension AddModule {
         }
     }
 
-    func runSwiftFormat(at path: Path, swiftFormatConfigPath: String, subprocessClient: SubprocessClient) async throws {
-        try await subprocessClient.run(
-            command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
-            workingDirectory: path.systemFilePath
-        )
+    func runSwiftFormat(
+        at path: Path,
+        swiftFormatConfigPath: String,
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
+    ) async throws {
+        let workingDirectory = path.systemFilePath
+
+        _ = try await nooraClient.progress(
+            message: "Running Swift Format",
+            successMessage: "Swift Format changes applied",
+            errorMessage: "Swift Format failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
+                workingDirectory: workingDirectory
+            )
+
+            return ()
+        }
     }
 
     func addTargetDependencies(
