@@ -97,7 +97,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 subprocessClient: subprocessClient,
                 stencilTemplateClient: stencilTemplateClient,
-                resourcesClient: resourcesClient
+                resourcesClient: resourcesClient,
+                nooraClient: nooraClient
             )
 
             try await configureWorkspace(
@@ -366,29 +367,44 @@ private extension Bootstrap {
         rootModule: String,
         subprocessClient: SubprocessClient,
         stencilTemplateClient: StencilTemplateClient,
-        resourcesClient: ResourcesClient
+        resourcesClient: ResourcesClient,
+        nooraClient: NooraClient
     ) async throws {
-        let rootModuleFileTemplate = try await resourcesClient.templateItem(type: .rootModuleView)
         let rootModuleFile = ProjectDirectory.modules(
             .sources(.module(rootModule, file: .file(rootModule, fileExtension: .swift)))
         )
 
-        try await subprocessClient.run(
-            command: .update(.replace(rootModuleFile, with: rootModuleFileTemplate)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
-
         let rootModuleFilePath = projectBasePath + rootModuleFile.pathString
-        try await stencilTemplateClient.processRootModuleTemplate(
-            atPath: rootModuleFilePath,
-            projectName: projectName,
-            moduleName: rootModule
-        )
+        let rootModuleFilePathString = rootModuleFilePath.string
+        let projectBaseDirectory = projectBasePath.systemFilePath
 
-        try await subprocessClient.run(
-            command: .rename(.projectItem(rootModuleFile, to: rootModule + "View")),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Configuring root module",
+            successMessage: "Root module configured",
+            errorMessage: "Root module configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Copying root module template")
+            let rootModuleFileTemplate = try await resourcesClient.templateItem(type: .rootModuleView)
+            try await subprocessClient.run(
+                command: .update(.replace(rootModuleFile, with: rootModuleFileTemplate)),
+                workingDirectory: projectBaseDirectory
+            )
+
+            messageUpdate("Processing root module template")
+            try await stencilTemplateClient.processRootModuleTemplate(
+                atPath: Path(rootModuleFilePathString),
+                projectName: projectName,
+                moduleName: rootModule
+            )
+
+            messageUpdate("Renaming root module file")
+            try await subprocessClient.run(
+                command: .rename(.projectItem(rootModuleFile, to: rootModule + "View")),
+                workingDirectory: projectBaseDirectory
+            )
+
+            return ()
+        }
     }
 
     func configureWorkspace(
