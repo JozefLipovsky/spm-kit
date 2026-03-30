@@ -105,7 +105,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 at: projectBasePath,
                 projectName: projectName,
                 subprocessClient: subprocessClient,
-                xcodeProjClient: xcodeProjClient
+                xcodeProjClient: xcodeProjClient,
+                nooraClient: nooraClient
             )
 
             try await configureProject(
@@ -411,17 +412,34 @@ private extension Bootstrap {
         at projectBasePath: Path,
         projectName: String,
         subprocessClient: SubprocessClient,
-        xcodeProjClient: XcodeProjClient
+        xcodeProjClient: XcodeProjClient,
+        nooraClient: NooraClient
     ) async throws {
-        let workspace = ProjectDirectory.root(.file("Template", fileExtension: .xcworkspace))
-        try await subprocessClient.run(
-            command: .rename(.projectItem(workspace, to: projectName)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let workspaceDirectory = ProjectDirectory.root(.file("Template", fileExtension: .xcworkspace))
+        let renamedWorkspaceDirectory = ProjectDirectory.root(.file(projectName, fileExtension: .xcworkspace))
+        let renamedWorkspacePath = projectBasePath + renamedWorkspaceDirectory.pathString
+        let renamedWorkspacePathString = renamedWorkspacePath.string
 
-        let renamedWorkspace = ProjectDirectory.root(.file(projectName, fileExtension: .xcworkspace))
-        let renamedWorkspacePath = projectBasePath + renamedWorkspace.pathString
-        try await xcodeProjClient.updateProjectReference(inWorkspace: renamedWorkspacePath, newProjectName: projectName)
+        _ = try await nooraClient.progress(
+            message: "Configuring workspace",
+            successMessage: "Workspace configured",
+            errorMessage: "Workspace configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Renaming workspace")
+            try await subprocessClient.run(
+                command: .rename(.projectItem(workspaceDirectory, to: projectName)),
+                workingDirectory: projectBaseDirectory
+            )
+
+            messageUpdate("Updating project references")
+            try await xcodeProjClient.updateProjectReference(
+                inWorkspace: Path(renamedWorkspacePathString),
+                newProjectName: projectName
+            )
+
+            return ()
+        }
     }
 
     func configureProject(
