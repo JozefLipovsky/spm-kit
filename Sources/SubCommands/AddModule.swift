@@ -84,7 +84,8 @@ package struct AddModule: AsyncParsableCommand {
             testingLibrary: testingLibrary,
             targetDependencies: targetDependencies,
             testTargetDependencies: testTargetDependencies,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
 
         try await addProduct(
@@ -332,56 +333,75 @@ private extension AddModule {
         testingLibrary: TestingLibrary,
         targetDependencies: [PackageDependency],
         testTargetDependencies: [PackageDependency],
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
         guard let targetType = productType.correspondingTargetType() else {
             throw Error.unsupportedProductType(productType)
         }
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addTarget(name: moduleName, type: targetType), useCustomScratchPath: true)),
-            workingDirectory: path.systemFilePath
-        )
+        let workingDirectory = path.systemFilePath
+        let pathString = path.string
 
-        try await addTargetDependencies(
-            targetDependencies,
-            to: moduleName,
-            at: path,
-            subprocessClient: subprocessClient
-        )
+        _ = try await nooraClient.progress(
+            message: "Adding module target",
+            successMessage: "Module target added",
+            errorMessage: "Adding module target failed"
+        ) { messageUpdate in
+            try await subprocessClient.run(
+                command: .swift(.package(.addTarget(name: moduleName, type: targetType), useCustomScratchPath: true)),
+                workingDirectory: workingDirectory
+            )
 
-        switch testingLibrary {
-            case .swiftTesting, .xctest:
-                let testTarget = moduleName + "Tests"
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTarget(name: testTarget, type: .test, testingLibrary: testingLibrary),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: path.systemFilePath
-                )
-
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTargetDependency(dependencyName: moduleName, targetName: testTarget),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: path.systemFilePath
-                )
-
+            if !targetDependencies.isEmpty {
+                messageUpdate("Adding target dependencies")
                 try await addTargetDependencies(
-                    testTargetDependencies,
-                    to: testTarget,
-                    at: path,
+                    targetDependencies,
+                    to: moduleName,
+                    at: Path(pathString),
                     subprocessClient: subprocessClient
                 )
+            }
 
-            case .none:
-                break
+            switch testingLibrary {
+                case .swiftTesting, .xctest:
+                    let testTarget = moduleName + "Tests"
+                    messageUpdate("Adding test target")
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTarget(name: testTarget, type: .test, testingLibrary: testingLibrary),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: workingDirectory
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTargetDependency(dependencyName: moduleName, targetName: testTarget),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: workingDirectory
+                    )
+
+                    if !testTargetDependencies.isEmpty {
+                        messageUpdate("Adding test target dependencies")
+                        try await addTargetDependencies(
+                            testTargetDependencies,
+                            to: testTarget,
+                            at: Path(pathString),
+                            subprocessClient: subprocessClient
+                        )
+                    }
+
+                case .none:
+                    break
+            }
+
+            return ()
         }
     }
 
