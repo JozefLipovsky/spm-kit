@@ -92,7 +92,8 @@ package struct AddModule: AsyncParsableCommand {
             at: modulesPath,
             moduleName: moduleName,
             productType: productType,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
 
         try await runSwiftFormat(
@@ -313,17 +314,28 @@ private extension AddModule {
         at path: Path,
         moduleName: String,
         productType: ProductType,
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
-        try await subprocessClient.run(
-            command: .swift(
-                .package(
-                    .addProduct(name: moduleName, type: productType, targets: [moduleName]),
-                    useCustomScratchPath: true
-                )
-            ),
-            workingDirectory: path.systemFilePath
-        )
+        let workingDirectory = path.systemFilePath
+
+        _ = try await nooraClient.progress(
+            message: "Adding module product",
+            successMessage: "Module product added",
+            errorMessage: "Adding module product failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(
+                    .package(
+                        .addProduct(name: moduleName, type: productType, targets: [moduleName]),
+                        useCustomScratchPath: true
+                    )
+                ),
+                workingDirectory: workingDirectory
+            )
+
+            return ()
+        }
     }
 
     func addTarget(
