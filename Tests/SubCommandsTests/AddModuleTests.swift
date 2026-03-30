@@ -137,7 +137,7 @@ struct AddModuleTests {
         #expect(subprocessRunCommands.count == 3)
         #expect(subprocessRunAndCaptureCommands.count == 3)
         #expect(dependenciesSelections.count == 1)
-        #expect(operationProgresses.count == 2)
+        #expect(operationProgresses.count == 5)
 
         // Target Dependencies
 
@@ -294,9 +294,7 @@ struct AddModuleTests {
         // Then
         let context = try #require(AddModuleExecutionContext.current)
         let dependenciesSelections = try #require(await context.nooraClientSpy.dependenciesSelections)
-        let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
 
-        #expect(operationProgresses.count == 2)
         #expect(dependenciesSelections.count == 2)
 
         // Target Dependencies Prompt
@@ -308,9 +306,6 @@ struct AddModuleTests {
         ]
         let expectedTargetQuestion = "Which dependencies would you like to include for the module target?"
 
-        #expect(operationProgresses[0].message == "Parsing target dependencies")
-        #expect(operationProgresses[0].successMessage == "Target dependencies parsed")
-        #expect(operationProgresses[0].errorMessage == "Target dependencies parse failed")
         #expect(dependenciesSelections[0].configuration.title.plain() == "Target dependencies")
         #expect(dependenciesSelections[0].configuration.question.plain() == expectedTargetQuestion)
         #expect(dependenciesSelections[0].options == expectedTargetDependencies)
@@ -326,13 +321,53 @@ struct AddModuleTests {
         let expectedTestTargetQuestion = "Which dependencies would you like to include for the module test target?"
         let expectedTestTargetDescription = "The new module's main target will be added automatically."
 
-        #expect(operationProgresses[1].message == "Parsing product dependencies")
-        #expect(operationProgresses[1].successMessage == "Product dependencies parsed")
-        #expect(operationProgresses[1].errorMessage == "Product dependencies parse failed")
         #expect(dependenciesSelections[1].configuration.title.plain() == "Test target dependencies")
         #expect(dependenciesSelections[1].configuration.question.plain() == expectedTestTargetQuestion)
         #expect(dependenciesSelections[1].configuration.description?.plain() == expectedTestTargetDescription)
         #expect(dependenciesSelections[1].options == expectedTestTargetDependencies)
+    }
+
+    @Test(
+        "AddModule - noora client progress calls - validates all progress updates",
+        .addModuleEnvironmentMock(nooraClientStubs: .init(selectDependencies: true))
+    )
+    func addModule_nooraClientProgressCalls_validatesAllProgressUpdates() async throws {
+        // Given
+        let arguments = [
+            "MyModule",
+            "--product-type", "library",
+            "--testing-library", "swift-testing"
+        ]
+        var sut = try AddModule.parse(arguments)
+
+        // When
+        try await sut.run()
+
+        // Then
+        let context = try #require(AddModuleExecutionContext.current)
+        let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
+
+        #expect(operationProgresses.count == 5)
+
+        #expect(operationProgresses[0].message == "Parsing target dependencies")
+        #expect(operationProgresses[0].successMessage == "Target dependencies parsed")
+        #expect(operationProgresses[0].errorMessage == "Target dependencies parse failed")
+
+        #expect(operationProgresses[1].message == "Parsing product dependencies")
+        #expect(operationProgresses[1].successMessage == "Product dependencies parsed")
+        #expect(operationProgresses[1].errorMessage == "Product dependencies parse failed")
+
+        #expect(operationProgresses[2].message == "Adding module target")
+        #expect(operationProgresses[2].successMessage == "Module target added")
+        #expect(operationProgresses[2].errorMessage == "Adding module target failed")
+
+        #expect(operationProgresses[3].message == "Adding module product")
+        #expect(operationProgresses[3].successMessage == "Module product added")
+        #expect(operationProgresses[3].errorMessage == "Adding module product failed")
+
+        #expect(operationProgresses[4].message == "Running Swift Format")
+        #expect(operationProgresses[4].successMessage == "Swift Format changes applied")
+        #expect(operationProgresses[4].errorMessage == "Swift Format failed")
     }
 
     // MARK: - Run - Error Handling
