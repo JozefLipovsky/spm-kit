@@ -83,8 +83,8 @@ struct NooraClientTests {
         }
     }
 
-    @Test("operationProgress - executes operation")
-    func operationProgress_executesOperation() async throws {
+    @Test("progress - executes operation")
+    func progress_executesOperation() async throws {
         try await withDependencies {
             $0.nooraClient = .liveValue
         } operation: {
@@ -92,7 +92,11 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
 
             // When
-            let output = try await sut.operationProgress(message: "Message") { "OperationStub" }
+            let output = try await sut.progress(
+                message: "Message",
+                successMessage: "Success",
+                errorMessage: "Error"
+            ) { _ in "OperationStub" }
 
             // Then
             #expect(output as? String == "OperationStub")

@@ -71,8 +71,8 @@ actor NooraClientSpy {
         }
     }
 
-    func recordOperationProgress(message: String) {
-        let progress = OperationProgress(message: message)
+    func recordOperationProgress(message: String, successMessage: String, errorMessage: String) {
+        let progress = OperationProgress(message: message, successMessage: successMessage, errorMessage: errorMessage)
         if operationProgresses == nil {
             operationProgresses = [progress]
         } else {
@@ -114,5 +114,7 @@ extension NooraClientSpy {
 
     struct OperationProgress {
         let message: String
+        let successMessage: String
+        let errorMessage: String
     }
 }

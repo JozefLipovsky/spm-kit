@@ -79,6 +79,14 @@ struct BootstrapTrait: TestTrait, TestScoping {
                 )
                 return nooraClientStubs.platforms
             }
+            $0.nooraClient.progress = { message, successMessage, errorMessage, operation in
+                await executionContext.nooraClientSpy.recordOperationProgress(
+                    message: message,
+                    successMessage: successMessage,
+                    errorMessage: errorMessage
+                )
+                return try await operation { _ in }
+            }
             $0.subprocessClient.run = { command, workingDirectory in
                 if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
                 await executionContext.subprocessClientSpy.recordRun(

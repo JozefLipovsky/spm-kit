@@ -84,20 +84,23 @@ package struct AddModule: AsyncParsableCommand {
             testingLibrary: testingLibrary,
             targetDependencies: targetDependencies,
             testTargetDependencies: testTargetDependencies,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
 
         try await addProduct(
             at: modulesPath,
             moduleName: moduleName,
             productType: productType,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
 
         try await runSwiftFormat(
             at: currentPath,
             swiftFormatConfigPath: swiftFormatConfigPath.string,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
     }
 }
@@ -207,24 +210,32 @@ private extension AddModule {
         )
     }
 
-    func fetchTargetDependencies(
+    func parseTargetDependencies(
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.operationProgress(message: "Fetching target dependencies") {
+        try await nooraClient.progress(
+            message: "Parsing target dependencies",
+            successMessage: "Target dependencies parsed",
+            errorMessage: "Target dependencies parse failed"
+        ) { _ in
             let path = Path(modulesPath)
             let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
             return packageJSON.targets.map { PackageDependency.target($0) }.sorted()
         } as? [PackageDependency] ?? []
     }
 
-    func fetchProductDependencies(
+    func parseProductDependencies(
         modulesPath: String,
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient
     ) async throws -> [PackageDependency] {
-        try await nooraClient.operationProgress(message: "Fetching product dependencies") {
+        try await nooraClient.progress(
+            message: "Parsing product dependencies",
+            successMessage: "Product dependencies parsed",
+            errorMessage: "Product dependencies parse failed"
+        ) { _ in
             let path = Path(modulesPath)
             let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
 
@@ -247,13 +258,13 @@ private extension AddModule {
     ) async throws -> [PackageDependency] {
         let path = modulesPath.string
 
-        let targets = try await fetchTargetDependencies(
+        let targets = try await parseTargetDependencies(
             modulesPath: path,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient
         )
 
-        let products = try await fetchProductDependencies(
+        let products = try await parseProductDependencies(
             modulesPath: path,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient
@@ -304,17 +315,28 @@ private extension AddModule {
         at path: Path,
         moduleName: String,
         productType: ProductType,
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
-        try await subprocessClient.run(
-            command: .swift(
-                .package(
-                    .addProduct(name: moduleName, type: productType, targets: [moduleName]),
-                    useCustomScratchPath: true
-                )
-            ),
-            workingDirectory: path.systemFilePath
-        )
+        let workingDirectory = path.systemFilePath
+
+        _ = try await nooraClient.progress(
+            message: "Adding module product",
+            successMessage: "Module product added",
+            errorMessage: "Adding module product failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(
+                    .package(
+                        .addProduct(name: moduleName, type: productType, targets: [moduleName]),
+                        useCustomScratchPath: true
+                    )
+                ),
+                workingDirectory: workingDirectory
+            )
+
+            return ()
+        }
     }
 
     func addTarget(
@@ -324,64 +346,98 @@ private extension AddModule {
         testingLibrary: TestingLibrary,
         targetDependencies: [PackageDependency],
         testTargetDependencies: [PackageDependency],
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
         guard let targetType = productType.correspondingTargetType() else {
             throw Error.unsupportedProductType(productType)
         }
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addTarget(name: moduleName, type: targetType), useCustomScratchPath: true)),
-            workingDirectory: path.systemFilePath
-        )
+        let workingDirectory = path.systemFilePath
+        let pathString = path.string
 
-        try await addTargetDependencies(
-            targetDependencies,
-            to: moduleName,
-            at: path,
-            subprocessClient: subprocessClient
-        )
+        _ = try await nooraClient.progress(
+            message: "Adding module target",
+            successMessage: "Module target added",
+            errorMessage: "Adding module target failed"
+        ) { messageUpdate in
+            try await subprocessClient.run(
+                command: .swift(.package(.addTarget(name: moduleName, type: targetType), useCustomScratchPath: true)),
+                workingDirectory: workingDirectory
+            )
 
-        switch testingLibrary {
-            case .swiftTesting, .xctest:
-                let testTarget = moduleName + "Tests"
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTarget(name: testTarget, type: .test, testingLibrary: testingLibrary),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: path.systemFilePath
-                )
-
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTargetDependency(dependencyName: moduleName, targetName: testTarget),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: path.systemFilePath
-                )
-
+            if !targetDependencies.isEmpty {
+                messageUpdate("Adding target dependencies")
                 try await addTargetDependencies(
-                    testTargetDependencies,
-                    to: testTarget,
-                    at: path,
+                    targetDependencies,
+                    to: moduleName,
+                    at: Path(pathString),
                     subprocessClient: subprocessClient
                 )
+            }
 
-            case .none:
-                break
+            switch testingLibrary {
+                case .swiftTesting, .xctest:
+                    let testTarget = moduleName + "Tests"
+                    messageUpdate("Adding test target")
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTarget(name: testTarget, type: .test, testingLibrary: testingLibrary),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: workingDirectory
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTargetDependency(dependencyName: moduleName, targetName: testTarget),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: workingDirectory
+                    )
+
+                    if !testTargetDependencies.isEmpty {
+                        messageUpdate("Adding test target dependencies")
+                        try await addTargetDependencies(
+                            testTargetDependencies,
+                            to: testTarget,
+                            at: Path(pathString),
+                            subprocessClient: subprocessClient
+                        )
+                    }
+
+                case .none:
+                    break
+            }
+
+            return ()
         }
     }
 
-    func runSwiftFormat(at path: Path, swiftFormatConfigPath: String, subprocessClient: SubprocessClient) async throws {
-        try await subprocessClient.run(
-            command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
-            workingDirectory: path.systemFilePath
-        )
+    func runSwiftFormat(
+        at path: Path,
+        swiftFormatConfigPath: String,
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
+    ) async throws {
+        let workingDirectory = path.systemFilePath
+
+        _ = try await nooraClient.progress(
+            message: "Running Swift Format",
+            successMessage: "Swift Format changes applied",
+            errorMessage: "Swift Format failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
+                workingDirectory: workingDirectory
+            )
+
+            return ()
+        }
     }
 
     func addTargetDependencies(

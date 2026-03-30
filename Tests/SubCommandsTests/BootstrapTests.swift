@@ -537,6 +537,56 @@ struct BootstrapTests {
         #expect(testingLibrarySelection[0].argument == nil)
     }
 
+    @Test("Bootstrap - noora client progress calls - configuration", .bootstrapEnvironmentMock())
+    func bootstrap_nooraClientProgressCalls_configuration() async throws {
+        // Given
+        let arguments = [
+            "MyTestProject",
+            "--iOS",
+            "v26",
+            "--company-domain",
+            "example.com",
+            "--root-module",
+            "feature",
+            "--testing-library",
+            "none"
+        ]
+        var sut = try Bootstrap.parse(arguments)
+
+        // When
+        try await sut.run()
+
+        // Then
+        let context = try #require(BootstrapExecutionContext.current)
+        let operationProgresses = try #require(await context.nooraClientSpy.operationProgresses)
+
+        #expect(operationProgresses.count == 6)
+
+        #expect(operationProgresses[0].message == "Copying project templates")
+        #expect(operationProgresses[0].successMessage == "Project templates copied")
+        #expect(operationProgresses[0].errorMessage == "Project templates copy failed")
+
+        #expect(operationProgresses[1].message == "Configuring Package.swift")
+        #expect(operationProgresses[1].successMessage == "Package.swift configured")
+        #expect(operationProgresses[1].errorMessage == "Package.swift configuration failed")
+
+        #expect(operationProgresses[2].message == "Configuring root module")
+        #expect(operationProgresses[2].successMessage == "Root module configured")
+        #expect(operationProgresses[2].errorMessage == "Root module configuration failed")
+
+        #expect(operationProgresses[3].message == "Configuring workspace")
+        #expect(operationProgresses[3].successMessage == "Workspace configured")
+        #expect(operationProgresses[3].errorMessage == "Workspace configuration failed")
+
+        #expect(operationProgresses[4].message == "Configuring Xcode project")
+        #expect(operationProgresses[4].successMessage == "Xcode project configured")
+        #expect(operationProgresses[4].errorMessage == "Xcode project configuration failed")
+
+        #expect(operationProgresses[5].message == "Running Swift Format")
+        #expect(operationProgresses[5].successMessage == "Swift Format changes applied")
+        #expect(operationProgresses[5].errorMessage == "Swift Format failed")
+    }
+
     // MARK: - Run - Error Handling
 
     @Test(

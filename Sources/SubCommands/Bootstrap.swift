@@ -77,7 +77,8 @@ package struct Bootstrap: AsyncParsableCommand {
             try await copyProjectTemplates(
                 to: projectBasePath,
                 subprocessClient: subprocessClient,
-                resourcesClient: resourcesClient
+                resourcesClient: resourcesClient,
+                nooraClient: nooraClient
             )
 
             try await configurePackage(
@@ -86,7 +87,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 testingLibrary: testingLibrary,
                 subprocessClient: subprocessClient,
-                packageEditorClient: packageEditorClient
+                packageEditorClient: packageEditorClient,
+                nooraClient: nooraClient
             )
 
             try await configureRootModule(
@@ -95,14 +97,16 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 subprocessClient: subprocessClient,
                 stencilTemplateClient: stencilTemplateClient,
-                resourcesClient: resourcesClient
+                resourcesClient: resourcesClient,
+                nooraClient: nooraClient
             )
 
             try await configureWorkspace(
                 at: projectBasePath,
                 projectName: projectName,
                 subprocessClient: subprocessClient,
-                xcodeProjClient: xcodeProjClient
+                xcodeProjClient: xcodeProjClient,
+                nooraClient: nooraClient
             )
 
             try await configureProject(
@@ -113,7 +117,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 subprocessClient: subprocessClient,
                 xcodeProjClient: xcodeProjClient,
-                stencilTemplateClient: stencilTemplateClient
+                stencilTemplateClient: stencilTemplateClient,
+                nooraClient: nooraClient
             )
         } catch {
             // Remove incomplete project when one of the configurations steps failed.
@@ -125,7 +130,8 @@ package struct Bootstrap: AsyncParsableCommand {
         try await runSwiftFormat(
             at: projectBasePath,
             configClient: configClient,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
     }
 }
@@ -236,27 +242,40 @@ private extension Bootstrap {
     func copyProjectTemplates(
         to projectBasePath: Path,
         subprocessClient: SubprocessClient,
-        resourcesClient: ResourcesClient
+        resourcesClient: ResourcesClient,
+        nooraClient: NooraClient
     ) async throws {
         let projectRootDirectory = ProjectDirectory.root()
+        let projectBasePathString = projectBasePath.systemFilePath
 
-        let xcodeProjectTemplate = try await resourcesClient.templateItem(type: .xcodeProject)
-        try await subprocessClient.run(
-            command: .update(.copy(xcodeProjectTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Copying project templates",
+            successMessage: "Project templates copied",
+            errorMessage: "Project templates copy failed"
+        ) { messageUpdate in
+            messageUpdate("Copying Xcode project template")
+            let xcodeProjectTemplate = try await resourcesClient.templateItem(type: .xcodeProject)
+            try await subprocessClient.run(
+                command: .update(.copy(xcodeProjectTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
 
-        let spmKitConfigTemplate = try await resourcesClient.templateItem(type: .spmKitConfig)
-        try await subprocessClient.run(
-            command: .update(.copy(spmKitConfigTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+            messageUpdate("Copying SPM Kit config template")
+            let spmKitConfigTemplate = try await resourcesClient.templateItem(type: .spmKitConfig)
+            try await subprocessClient.run(
+                command: .update(.copy(spmKitConfigTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
 
-        let swiftFormatConfigTemplate = try await resourcesClient.templateItem(type: .swiftFormatConfig)
-        try await subprocessClient.run(
-            command: .update(.copy(swiftFormatConfigTemplate, to: projectRootDirectory)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+            messageUpdate("Copying Swift Format config template")
+            let swiftFormatConfigTemplate = try await resourcesClient.templateItem(type: .swiftFormatConfig)
+            try await subprocessClient.run(
+                command: .update(.copy(swiftFormatConfigTemplate, to: projectRootDirectory)),
+                workingDirectory: projectBasePathString
+            )
+
+            return ()
+        }
     }
 
     func configurePackage(
@@ -265,61 +284,83 @@ private extension Bootstrap {
         rootModule: String,
         testingLibrary: TestingLibrary,
         subprocessClient: SubprocessClient,
-        packageEditorClient: PackageEditorClient
+        packageEditorClient: PackageEditorClient,
+        nooraClient: NooraClient
     ) async throws {
         let modulesDirectory = ProjectDirectory.modules()
         let modulesPath = projectBasePath + modulesDirectory.pathString
-
-        let minToolsVersion = selectedPlatforms.min { $0.toolsVersion < $1.toolsVersion }
-        if let minToolsVersionIdentifier = minToolsVersion?.toolsVersionIdentifier {
-            try await subprocessClient.run(
-                command: .swift(.package(.setToolsVersion(version: minToolsVersionIdentifier))),
-                workingDirectory: modulesPath.systemFilePath
-            )
-        }
+        let modulesPathString = modulesPath.string
 
         let packageManifestDirectory = ProjectDirectory.modules(.packageManifest)
         let packageManifestPath = projectBasePath + packageManifestDirectory.pathString
-        try await packageEditorClient.add(platforms: selectedPlatforms, toManifestAt: packageManifestPath)
+        let packageManifestPathString = packageManifestPath.string
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addTarget(name: rootModule))),
-            workingDirectory: modulesPath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Configuring Package.swift",
+            successMessage: "Package.swift configured",
+            errorMessage: "Package.swift configuration failed"
+        ) { messageUpdate in
+            let modulesDirectory = Path(modulesPathString).systemFilePath
 
-        try await subprocessClient.run(
-            command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
-            workingDirectory: modulesPath.systemFilePath
-        )
-
-        switch testingLibrary {
-            case .swiftTesting, .xctest:
-                let addTargetSubcommand = ShellCommand.SwiftSubCommand.PackageSubCommand.addTarget(
-                    name: rootModule + "Tests",
-                    type: .test,
-                    testingLibrary: testingLibrary
-                )
-
+            messageUpdate("Setting minimum supported Swift version")
+            let minToolsVersion = selectedPlatforms.min { $0.toolsVersion < $1.toolsVersion }
+            if let minToolsVersionIdentifier = minToolsVersion?.toolsVersionIdentifier {
                 try await subprocessClient.run(
-                    command: .swift(.package(addTargetSubcommand, useCustomScratchPath: true)),
-                    workingDirectory: modulesPath.systemFilePath
+                    command: .swift(.package(.setToolsVersion(version: minToolsVersionIdentifier))),
+                    workingDirectory: modulesDirectory
                 )
+            }
 
-                try await subprocessClient.run(
-                    command: .swift(
-                        .package(
-                            .addTargetDependency(
-                                dependencyName: rootModule,
-                                targetName: rootModule + "Tests",
-                                package: nil
-                            ),
-                            useCustomScratchPath: true
-                        )
-                    ),
-                    workingDirectory: modulesPath.systemFilePath
-                )
-            case .none:
-                break
+            messageUpdate("Adding selected platforms")
+            try await packageEditorClient.add(
+                platforms: selectedPlatforms,
+                toManifestAt: Path(packageManifestPathString)
+            )
+
+            messageUpdate("Adding root module target")
+            try await subprocessClient.run(
+                command: .swift(.package(.addTarget(name: rootModule))),
+                workingDirectory: modulesDirectory
+            )
+
+            messageUpdate("Adding root module product")
+            try await subprocessClient.run(
+                command: .swift(.package(.addProduct(name: rootModule, targets: [rootModule]))),
+                workingDirectory: modulesDirectory
+            )
+
+            switch testingLibrary {
+                case .swiftTesting, .xctest:
+                    messageUpdate("Adding root module test target")
+                    let addTargetSubcommand = ShellCommand.SwiftSubCommand.PackageSubCommand.addTarget(
+                        name: rootModule + "Tests",
+                        type: .test,
+                        testingLibrary: testingLibrary
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(.package(addTargetSubcommand, useCustomScratchPath: true)),
+                        workingDirectory: modulesDirectory
+                    )
+
+                    try await subprocessClient.run(
+                        command: .swift(
+                            .package(
+                                .addTargetDependency(
+                                    dependencyName: rootModule,
+                                    targetName: rootModule + "Tests",
+                                    package: nil
+                                ),
+                                useCustomScratchPath: true
+                            )
+                        ),
+                        workingDirectory: modulesDirectory
+                    )
+                case .none:
+                    break
+            }
+
+            return ()
         }
     }
 
@@ -329,46 +370,78 @@ private extension Bootstrap {
         rootModule: String,
         subprocessClient: SubprocessClient,
         stencilTemplateClient: StencilTemplateClient,
-        resourcesClient: ResourcesClient
+        resourcesClient: ResourcesClient,
+        nooraClient: NooraClient
     ) async throws {
-        let rootModuleFileTemplate = try await resourcesClient.templateItem(type: .rootModuleView)
         let rootModuleFile = ProjectDirectory.modules(
             .sources(.module(rootModule, file: .file(rootModule, fileExtension: .swift)))
         )
 
-        try await subprocessClient.run(
-            command: .update(.replace(rootModuleFile, with: rootModuleFileTemplate)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
-
         let rootModuleFilePath = projectBasePath + rootModuleFile.pathString
-        try await stencilTemplateClient.processRootModuleTemplate(
-            atPath: rootModuleFilePath,
-            projectName: projectName,
-            moduleName: rootModule
-        )
+        let rootModuleFilePathString = rootModuleFilePath.string
+        let projectBaseDirectory = projectBasePath.systemFilePath
 
-        try await subprocessClient.run(
-            command: .rename(.projectItem(rootModuleFile, to: rootModule + "View")),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Configuring root module",
+            successMessage: "Root module configured",
+            errorMessage: "Root module configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Copying root module template")
+            let rootModuleFileTemplate = try await resourcesClient.templateItem(type: .rootModuleView)
+            try await subprocessClient.run(
+                command: .update(.replace(rootModuleFile, with: rootModuleFileTemplate)),
+                workingDirectory: projectBaseDirectory
+            )
+
+            messageUpdate("Processing root module template")
+            try await stencilTemplateClient.processRootModuleTemplate(
+                atPath: Path(rootModuleFilePathString),
+                projectName: projectName,
+                moduleName: rootModule
+            )
+
+            messageUpdate("Renaming root module file")
+            try await subprocessClient.run(
+                command: .rename(.projectItem(rootModuleFile, to: rootModule + "View")),
+                workingDirectory: projectBaseDirectory
+            )
+
+            return ()
+        }
     }
 
     func configureWorkspace(
         at projectBasePath: Path,
         projectName: String,
         subprocessClient: SubprocessClient,
-        xcodeProjClient: XcodeProjClient
+        xcodeProjClient: XcodeProjClient,
+        nooraClient: NooraClient
     ) async throws {
-        let workspace = ProjectDirectory.root(.file("Template", fileExtension: .xcworkspace))
-        try await subprocessClient.run(
-            command: .rename(.projectItem(workspace, to: projectName)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let workspaceDirectory = ProjectDirectory.root(.file("Template", fileExtension: .xcworkspace))
+        let renamedWorkspaceDirectory = ProjectDirectory.root(.file(projectName, fileExtension: .xcworkspace))
+        let renamedWorkspacePath = projectBasePath + renamedWorkspaceDirectory.pathString
+        let renamedWorkspacePathString = renamedWorkspacePath.string
 
-        let renamedWorkspace = ProjectDirectory.root(.file(projectName, fileExtension: .xcworkspace))
-        let renamedWorkspacePath = projectBasePath + renamedWorkspace.pathString
-        try await xcodeProjClient.updateProjectReference(inWorkspace: renamedWorkspacePath, newProjectName: projectName)
+        _ = try await nooraClient.progress(
+            message: "Configuring workspace",
+            successMessage: "Workspace configured",
+            errorMessage: "Workspace configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Renaming workspace")
+            try await subprocessClient.run(
+                command: .rename(.projectItem(workspaceDirectory, to: projectName)),
+                workingDirectory: projectBaseDirectory
+            )
+
+            messageUpdate("Updating project references")
+            try await xcodeProjClient.updateProjectReference(
+                inWorkspace: Path(renamedWorkspacePathString),
+                newProjectName: projectName
+            )
+
+            return ()
+        }
     }
 
     func configureProject(
@@ -379,50 +452,77 @@ private extension Bootstrap {
         rootModule: String,
         subprocessClient: SubprocessClient,
         xcodeProjClient: XcodeProjClient,
-        stencilTemplateClient: StencilTemplateClient
+        stencilTemplateClient: StencilTemplateClient,
+        nooraClient: NooraClient
     ) async throws {
-        let project = ProjectDirectory.app(.root(.file("App", fileExtension: .xcodeproj)))
-        try await subprocessClient.run(
-            command: .rename(.projectItem(project, to: projectName)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let renamedProjectDirectory = ProjectDirectory.app(.root(.file(projectName, fileExtension: .xcodeproj)))
+        let projectPath = projectBasePath + renamedProjectDirectory.pathString
+        let projectPathString = projectPath.string
+        let projectRootDirectory = ProjectDirectory.app()
+        let projectRootPath = projectBasePath + projectRootDirectory.pathString
+        let projectRootPathString = projectRootPath.string
 
-        let renamedProject = ProjectDirectory.app(.root(.file(projectName, fileExtension: .xcodeproj)))
-        let projectPath = projectBasePath + renamedProject.pathString
-        let projectRoot = ProjectDirectory.app()
-        let projectRootPath = projectBasePath + projectRoot.pathString
+        _ = try await nooraClient.progress(
+            message: "Configuring Xcode project",
+            successMessage: "Xcode project configured",
+            errorMessage: "Xcode project configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Renaming project")
+            let projectDirectory = ProjectDirectory.app(.root(.file("App", fileExtension: .xcodeproj)))
 
-        let projectConfig = ProjectConfiguration(
-            projectPath: projectPath,
-            projectRootPath: projectRootPath,
-            newProjectName: projectName,
-            selectedPlatforms: selectedPlatforms,
-            bundleIdentifier: bundleIdentifier,
-            rootModuleName: rootModule
-        )
+            try await subprocessClient.run(
+                command: .rename(.projectItem(projectDirectory, to: projectName)),
+                workingDirectory: projectBaseDirectory
+            )
 
-        try await xcodeProjClient.configureProject(configuration: projectConfig)
+            let projectConfig = ProjectConfiguration(
+                projectPath: Path(projectPathString),
+                projectRootPath: Path(projectRootPathString),
+                newProjectName: projectName,
+                selectedPlatforms: selectedPlatforms,
+                bundleIdentifier: bundleIdentifier,
+                rootModuleName: rootModule
+            )
 
-        try await stencilTemplateClient.processSelectedTargetsAppTemplates(
-            targetAppTemplates: projectConfig.selectedTargetsAppTemplates,
-            moduleName: rootModule
-        )
+            messageUpdate("Configuring project settings")
+            try await xcodeProjClient.configureProject(configuration: projectConfig)
+
+            messageUpdate("Processing target templates")
+            try await stencilTemplateClient.processSelectedTargetsAppTemplates(
+                targetAppTemplates: projectConfig.selectedTargetsAppTemplates,
+                moduleName: rootModule
+            )
+
+            return ()
+        }
     }
 
     func runSwiftFormat(
         at projectBasePath: Path,
         configClient: ConfigClient,
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
         guard let configPath = projectBasePath.ancestor(containing: "spm-kit-config.yaml") else {
             throw Error.configFileNotFound
         }
 
         let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let swiftFormatConfigPathString = swiftFormatConfigPath.string
 
-        try await subprocessClient.run(
-            command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath.string))),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Running Swift Format",
+            successMessage: "Swift Format changes applied",
+            errorMessage: "Swift Format failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPathString))),
+                workingDirectory: projectBaseDirectory
+            )
+
+            return ()
+        }
     }
 }

@@ -89,9 +89,13 @@ struct AddModuleTrait: TestTrait, TestScoping {
                 )
                 return nooraClientStubs.dependencies
             }
-            $0.nooraClient.operationProgress = { message, operation in
-                await executionContext.nooraClientSpy.recordOperationProgress(message: message)
-                return try await operation()
+            $0.nooraClient.progress = { message, successMessage, errorMessage, operation in
+                await executionContext.nooraClientSpy.recordOperationProgress(
+                    message: message,
+                    successMessage: successMessage,
+                    errorMessage: errorMessage
+                )
+                return try await operation { _ in }
             }
             $0.subprocessClient.run = { command, workingDirectory in
                 if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }

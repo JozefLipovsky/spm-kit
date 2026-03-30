@@ -60,16 +60,25 @@ package struct NooraClient: Sendable {
             _ argument: ProductType?
         ) async -> ProductType = { _, _ in .library }
 
+    /// A closure type representing an asynchronous operation that can report progress updates.
+    /// - Parameter task: A closure that accepts a progress message string and can throw errors.
+    package typealias Operation = @Sendable (_ task: @escaping @Sendable (String) -> ()) async throws -> any Sendable
+
     /// Executes an operation while presenting a progress spinner.
     /// - Parameters:
-    ///   - message: The message to display with the spinner.
-    ///   - operation: The asynchronous operation to execute.
+    ///   - message: The initial message to display with the spinner.
+    ///   - successMessage: The message to display when the operation completes successfully.
+    ///   - errorMessage: The message to display when the operation fails.
+    ///   - operation: The asynchronous operation to execute, which can update the progress message.
     /// - Returns: The result of the operation.
-    package var operationProgress:
+    /// - Throws: An error if the operation fails.
+    package var progress:
         @Sendable (
             _ message: String,
-            _ operation: @escaping @Sendable () async throws -> any Sendable
-        ) async throws -> any Sendable = { _, _ in () }
+            _ successMessage: String,
+            _ errorMessage: String,
+            _ operation: @escaping Operation
+        ) async throws -> any Sendable = { _, _ , _, _ in () }
 
     /// Prompts the user with a yes/no choice.
     /// If `shouldSkip` is `true`, it returns `false` immediately without prompting the user.
@@ -132,9 +141,14 @@ extension NooraClient: DependencyKey {
 
                 return argument
             },
-            operationProgress: { message, operation in
-                try await Noora().progressStep(message: message) { _ in
-                    try await operation()
+            progress: { message, successMessage, errorMessage, operation in
+                try await Noora().progressStep(
+                    message: message,
+                    successMessage: successMessage,
+                    errorMessage: errorMessage,
+                    showSpinner: true
+                ) { messageUpdate in
+                    try await operation(messageUpdate)
                 }
             },
             yesOrNoConfirmation: { configuration, shouldSkip in
