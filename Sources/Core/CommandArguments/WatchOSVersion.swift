@@ -9,24 +9,24 @@ import ArgumentParser
 
 /// Supported watchOS Versions
 package enum WatchOSVersion: String, PlatformVersion {
-    /// First available in PackageDescription 5.9
-    case v10
+    /// First available in PackageDescription 6.2
+    case v26
 
     /// First available in PackageDescription 6.0
     case v11
 
-    /// First available in PackageDescription 6.2
-    case v26
+    /// First available in PackageDescription 5.9
+    case v10
 
     /// The minimum tools version required for the platform.
     package var toolsVersion: Double {
         switch self {
-            case .v10:
-                return 5.9
-            case .v11:
-                return 6.0
             case .v26:
                 return 6.2
+            case .v11:
+                return 6.0
+            case .v10:
+                return 5.9
         }
     }
 
@@ -38,12 +38,12 @@ package enum WatchOSVersion: String, PlatformVersion {
     /// The value of the build setting used to specify the deployment target version.
     package var deploymentTargetSettingValue: String {
         switch self {
-            case .v10:
-                return "10.0"
-            case .v11:
-                return "11.0"
             case .v26:
                 return "26.0"
+            case .v11:
+                return "11.0"
+            case .v10:
+                return "10.0"
         }
     }
 

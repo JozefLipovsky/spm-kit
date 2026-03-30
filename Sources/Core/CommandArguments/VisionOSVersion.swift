@@ -9,24 +9,24 @@ import ArgumentParser
 
 /// Supported visionOS Versions
 package enum VisionOSVersion: String, PlatformVersion {
-    /// First available in PackageDescription 5.9
-    case v1
+    /// First available in PackageDescription 6.2
+    case v26
 
     /// First available in PackageDescription 6.0
     case v2
 
-    /// First available in PackageDescription 6.2
-    case v26
+    /// First available in PackageDescription 5.9
+    case v1
 
     /// The minimum tools version required for the platform.
     package var toolsVersion: Double {
         switch self {
-            case .v1:
-                return 5.9
-            case .v2:
-                return 6.0
             case .v26:
                 return 6.2
+            case .v2:
+                return 6.0
+            case .v1:
+                return 5.9
         }
     }
 
@@ -38,12 +38,12 @@ package enum VisionOSVersion: String, PlatformVersion {
     /// The value of the build setting used to specify the deployment target version.
     package var deploymentTargetSettingValue: String {
         switch self {
-            case .v1:
-                return "1.0"
-            case .v2:
-                return "2.0"
             case .v26:
                 return "26.0"
+            case .v2:
+                return "2.0"
+            case .v1:
+                return "1.0"
         }
     }
 
