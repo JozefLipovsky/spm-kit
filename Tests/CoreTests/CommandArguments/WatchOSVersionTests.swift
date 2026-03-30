@@ -103,18 +103,6 @@ struct WatchOSVersionTests {
         }
     }
 
-    @Test("CaseIterable - returns all expected cases")
-    func caseIterable_returnsAllExpectedCases() {
-        // Given, When
-        let sut = WatchOSVersion.allCases
-
-        // Then
-        #expect(sut.count == 3)
-        #expect(sut.contains(.v10))
-        #expect(sut.contains(.v11))
-        #expect(sut.contains(.v26))
-    }
-
     @Test("CaseIterable - allCases returns versions in descending order")
     func caseIterable_allCases_returnsVersionsInDescendingOrder() {
         // Given, When
