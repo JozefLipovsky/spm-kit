@@ -117,7 +117,8 @@ package struct Bootstrap: AsyncParsableCommand {
                 rootModule: rootModule,
                 subprocessClient: subprocessClient,
                 xcodeProjClient: xcodeProjClient,
-                stencilTemplateClient: stencilTemplateClient
+                stencilTemplateClient: stencilTemplateClient,
+                nooraClient: nooraClient
             )
         } catch {
             // Remove incomplete project when one of the configurations steps failed.
@@ -450,34 +451,50 @@ private extension Bootstrap {
         rootModule: String,
         subprocessClient: SubprocessClient,
         xcodeProjClient: XcodeProjClient,
-        stencilTemplateClient: StencilTemplateClient
+        stencilTemplateClient: StencilTemplateClient,
+        nooraClient: NooraClient
     ) async throws {
-        let project = ProjectDirectory.app(.root(.file("App", fileExtension: .xcodeproj)))
-        try await subprocessClient.run(
-            command: .rename(.projectItem(project, to: projectName)),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let renamedProjectDirectory = ProjectDirectory.app(.root(.file(projectName, fileExtension: .xcodeproj)))
+        let projectPath = projectBasePath + renamedProjectDirectory.pathString
+        let projectPathString = projectPath.string
+        let projectRootDirectory = ProjectDirectory.app()
+        let projectRootPath = projectBasePath + projectRootDirectory.pathString
+        let projectRootPathString = projectRootPath.string
 
-        let renamedProject = ProjectDirectory.app(.root(.file(projectName, fileExtension: .xcodeproj)))
-        let projectPath = projectBasePath + renamedProject.pathString
-        let projectRoot = ProjectDirectory.app()
-        let projectRootPath = projectBasePath + projectRoot.pathString
+        _ = try await nooraClient.progress(
+            message: "Configuring Xcode project",
+            successMessage: "Xcode project configured",
+            errorMessage: "Xcode project configuration failed"
+        ) { messageUpdate in
+            messageUpdate("Renaming project")
+            let projectDirectory = ProjectDirectory.app(.root(.file("App", fileExtension: .xcodeproj)))
 
-        let projectConfig = ProjectConfiguration(
-            projectPath: projectPath,
-            projectRootPath: projectRootPath,
-            newProjectName: projectName,
-            selectedPlatforms: selectedPlatforms,
-            bundleIdentifier: bundleIdentifier,
-            rootModuleName: rootModule
-        )
+            try await subprocessClient.run(
+                command: .rename(.projectItem(projectDirectory, to: projectName)),
+                workingDirectory: projectBaseDirectory
+            )
 
-        try await xcodeProjClient.configureProject(configuration: projectConfig)
+            let projectConfig = ProjectConfiguration(
+                projectPath: Path(projectPathString),
+                projectRootPath: Path(projectRootPathString),
+                newProjectName: projectName,
+                selectedPlatforms: selectedPlatforms,
+                bundleIdentifier: bundleIdentifier,
+                rootModuleName: rootModule
+            )
 
-        try await stencilTemplateClient.processSelectedTargetsAppTemplates(
-            targetAppTemplates: projectConfig.selectedTargetsAppTemplates,
-            moduleName: rootModule
-        )
+            messageUpdate("Configuring project settings")
+            try await xcodeProjClient.configureProject(configuration: projectConfig)
+
+            messageUpdate("Processing target templates")
+            try await stencilTemplateClient.processSelectedTargetsAppTemplates(
+                targetAppTemplates: projectConfig.selectedTargetsAppTemplates,
+                moduleName: rootModule
+            )
+
+            return ()
+        }
     }
 
     func runSwiftFormat(
