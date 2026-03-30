@@ -130,7 +130,8 @@ package struct Bootstrap: AsyncParsableCommand {
         try await runSwiftFormat(
             at: projectBasePath,
             configClient: configClient,
-            subprocessClient: subprocessClient
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
         )
     }
 }
@@ -500,17 +501,28 @@ private extension Bootstrap {
     func runSwiftFormat(
         at projectBasePath: Path,
         configClient: ConfigClient,
-        subprocessClient: SubprocessClient
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
     ) async throws {
         guard let configPath = projectBasePath.ancestor(containing: "spm-kit-config.yaml") else {
             throw Error.configFileNotFound
         }
 
         let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
+        let projectBaseDirectory = projectBasePath.systemFilePath
+        let swiftFormatConfigPathString = swiftFormatConfigPath.string
 
-        try await subprocessClient.run(
-            command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath.string))),
-            workingDirectory: projectBasePath.systemFilePath
-        )
+        _ = try await nooraClient.progress(
+            message: "Running Swift Format",
+            successMessage: "Swift Format changes applied",
+            errorMessage: "Swift Format failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPathString))),
+                workingDirectory: projectBaseDirectory
+            )
+
+            return ()
+        }
     }
 }
