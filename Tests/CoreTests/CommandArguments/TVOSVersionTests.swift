@@ -114,4 +114,16 @@ struct TVOSVersionTests {
         #expect(sut.contains(.v18))
         #expect(sut.contains(.v26))
     }
+
+    @Test("CaseIterable - allCases returns versions in descending order")
+    func caseIterable_allCases_returnsVersionsInDescendingOrder() {
+        // Given, When
+        let sut = TVOSVersion.allCases
+
+        // Then
+        #expect(sut.count == 3)
+        #expect(sut[0] == .v26)
+        #expect(sut[1] == .v18)
+        #expect(sut[2] == .v17)
+    }
 }
