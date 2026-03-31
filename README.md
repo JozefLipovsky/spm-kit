@@ -159,12 +159,12 @@ Just run a command, and the tool will guide you through the configuration step-b
 ```
 spm-kit bootstrap-project
 ```
-<video src="https://github.com/user-attachments/assets/12d982e9-5bff-41f1-add2-95d36e36563e" width="100%" autoplay muted playsinline></video>
+<video src="https://github.com/user-attachments/assets/7d1a30f2-82eb-40c7-b1fe-1dfb6a6f696c" width="100%" autoplay muted playsinline></video>
 
 ```
 spm-kit add-module
 ```
-<video src="https://github.com/user-attachments/assets/255ce41a-163e-4331-84d0-a00d183e4e00" width="100%" playsinline></video>
+<video src="https://github.com/user-attachments/assets/60b6f2fd-582f-4d38-971a-0bb9200bd7f2" width="100%" playsinline></video>
 
 ### Hybrid Mode
 Provide only the arguments you remember, and the tool will prompt you for the missing ones.
@@ -172,7 +172,7 @@ Provide only the arguments you remember, and the tool will prompt you for the mi
 ```
 spm-kit bootstrap-project MyProject --iOS v26
 ```
-<video src="https://github.com/user-attachments/assets/7da346d8-acfb-4034-aa80-6ffcf248cde6" width="100%" playsinline></video>
+<video src="https://github.com/user-attachments/assets/ecaba574-c0a9-4b7c-a082-9e51b2bfe202" width="100%" playsinline></video>
 
 ### Argument Mode
 You can provide all required arguments using flags to skip interactive prompts entirely.
@@ -180,11 +180,11 @@ You can provide all required arguments using flags to skip interactive prompts e
 ```
 spm-kit add-module ThirdFeature --product-type library --testing-library xctest --skip-dependencies
 ```
-<video src="https://github.com/user-attachments/assets/37447812-6021-4ef7-b273-99b8c05db075" width="100%" playsinline></video>
+<video src="https://github.com/user-attachments/assets/21efa686-c33e-4883-abda-f537c3751c5b" width="100%" playsinline></video>
 
 ### LLM
 An LLM of your choice should also be able to execute spm-kit commands.
-<video src="https://github.com/user-attachments/assets/2d9669e4-d01f-4cfc-9a0e-f913dc1711c7" width="100%" playsinline></video>
+<video src="https://github.com/user-attachments/assets/a23cc810-f6c1-4edb-bf2a-c6f550af6f3e" width="100%" playsinline></video>
 
 ## Configuration
 
