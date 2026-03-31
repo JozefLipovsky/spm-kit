@@ -381,7 +381,7 @@ struct BootstrapTests {
         #expect(projectConfigEdits[0].selectedPlatforms[1].version == "v26")
         #expect(projectConfigEdits[0].projectPath.hasSuffix("Project/App/Project.xcodeproj"))
 
-        #expect(commands[3].command == .swift(.package(.setToolsVersion(version: "5.9"))))
+        #expect(commands[3].command == .swift(.package(.setToolsVersion(version: "6.2"))))
     }
 
     // MARK: - Noora Prompts Configurations
