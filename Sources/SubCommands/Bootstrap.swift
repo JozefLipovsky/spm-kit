@@ -302,11 +302,11 @@ private extension Bootstrap {
         ) { messageUpdate in
             let modulesDirectory = Path(modulesPathString).systemFilePath
 
-            messageUpdate("Setting minimum supported Swift version")
-            let minToolsVersion = selectedPlatforms.min { $0.toolsVersion < $1.toolsVersion }
-            if let minToolsVersionIdentifier = minToolsVersion?.toolsVersionIdentifier {
+            messageUpdate("Setting swift tools version")
+            let toolsVersion = selectedPlatforms.max { $0.toolsVersion < $1.toolsVersion }
+            if let toolsVersionIdentifier = toolsVersion?.toolsVersionIdentifier {
                 try await subprocessClient.run(
-                    command: .swift(.package(.setToolsVersion(version: minToolsVersionIdentifier))),
+                    command: .swift(.package(.setToolsVersion(version: toolsVersionIdentifier))),
                     workingDirectory: modulesDirectory
                 )
             }
