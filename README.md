@@ -85,8 +85,8 @@ Bootsraped project structure:
 spm-kit bootstrap-project -h
 OVERVIEW: Initializes a new, modular Swift Package Manager (SPM) based project.
 
-Initializes a new SPM project with maximum flexibility in configuration. Any of the project configuration and options values can
-be provided via command-line arguments; missing values will be prompted for interactively.
+Initializes a new SPM project with maximum flexibility in configuration. Any of the project configuration and options
+values can be provided via command-line arguments; missing values will be prompted for interactively.
 
 USAGE: spm-kit bootstrap-project [<name>] [--company-domain <company-domain>] [--iOS <iOS>] [--macOS <macOS>] [--tvOS <tvOS>] [--visionOS <visionOS>] [--watchOS <watchOS>] [--root-module <root-module>] [--testing-library <testing-library>]
 
@@ -94,21 +94,23 @@ ARGUMENTS:
   <name>                  The name of the new project.
 
 PROJECT PLATFORM(S) CONFIGURATION:
-  --iOS <iOS>             Specify the iOS version. (e.g., v26) (values: v17, v18, v26)
-  --macOS <macOS>         Specify the macOS version. (e.g., v26) (values: v14, v15, v26)
-  --tvOS <tvOS>           Specify the tvOS version. (e.g., v26) (values: v17, v18, v26)
-  --visionOS <visionOS>   Specify the visionOS version. (e.g., v26) (values: v1, v2, v26)
-  --watchOS <watchOS>     Specify the watchOS version. (e.g., v26) (values: v10, v11, v26)
+  --iOS <iOS>             Specify the iOS version. (e.g., v26) (values: v26, v18, v17)
+  --macOS <macOS>         Specify the macOS version. (e.g., v26) (values: v26, v15, v14)
+  --tvOS <tvOS>           Specify the tvOS version. (e.g., v26) (values: v26, v18, v17)
+  --visionOS <visionOS>   Specify the visionOS version. (e.g., v26) (values: v26, v2, v1)
+  --watchOS <watchOS>     Specify the watchOS version. (e.g., v26) (values: v26, v11, v10)
 
 OPTIONS:
   --company-domain <company-domain>
-                          The company domain or unique namespace that will be reversed and combined with the project name. For
-                          example, 'example.com' becomes 'com.example' which is then combined with the project name to create the
-                          bundle identifier in reverse DNS format 'com.example.projectName'.
+                          The company domain or unique namespace that will be reversed and combined with the project
+                          name. For example, 'example.com' becomes 'com.example' which is then combined with the
+                          project name to create the bundle identifier in reverse DNS format
+                          'com.example.projectName'.
   --root-module <root-module>
                           The name for the initial 'root' module of the project.
   --testing-library <testing-library>
-                          The testing framework to use for the 'root' module tests. (values: swift-testing, xctest, none)
+                          The testing framework to use for the 'root' module tests. (values: swift-testing, xctest,
+                          none)
   --version               Show the version.
   -h, --help              Show help information.
 ```
