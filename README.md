@@ -50,7 +50,7 @@ Creates a new modular project from scratch. It sets up:
 - A modular structure where all your code lives in a "Modules" folder managed by a single Swift Package.
 - A root module that serves as the main entry point feature for all selected platforms.
 
-Bootsraped project structure:
+Bootstrapped project structure:
 ```text
 .
 ├── MyProject.xcworkspace
