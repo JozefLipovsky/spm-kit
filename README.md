@@ -202,7 +202,7 @@ swift-format-config-path: .swift-format
 
 ## Dependencies
 
-spm-kit is built using these open-source libraries:
+spm-kit was built using following open-source libraries:
 - [ArgumentParser](https://github.com/apple/swift-argument-parser)
 - [Noora](https://github.com/tuist/noora)
 - [PathKit](https://github.com/kylef/PathKit)
@@ -213,7 +213,7 @@ spm-kit is built using these open-source libraries:
 - [Swift Syntax](https://github.com/swiftlang/swift-syntax)
 - [XcodeProj](https://github.com/tuist/xcodeproj)
 
-And uses these tools behind the scenes:
+And using additional tools behind the scenes:
 - [swift package](https://www.swift.org/documentation/package-manager/)
 - [swift-format](https://github.com/swiftlang/swift-format)
 - [cp](https://www.gnu.org/software/coreutils/manual/coreutils.html#cp_003a-Copy-files-and-directories)
