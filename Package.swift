@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -19,7 +19,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.0"),
         .package(url: "https://github.com/apple/swift-configuration", from: "1.0.0", traits: [.defaults, "YAML"]),
-        .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.0"),    // https://github.com/apple/swift-configuration/issues/89
         .package(url: "https://github.com/kylef/PathKit.git", from: "1.0.1"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies.git", from: "1.10.1"),
         .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.15.1"),
