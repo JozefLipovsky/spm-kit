@@ -19,7 +19,8 @@ struct SPMKit: AsyncParsableCommand {
         shouldDisplay: true,
         subcommands: [
             Bootstrap.self,
-            AddModule.self
+            AddModule.self,
+            AddTargetDependencies.self
         ],
         groupedSubcommands: [],
         defaultSubcommand: nil,
