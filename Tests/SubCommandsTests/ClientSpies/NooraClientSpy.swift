@@ -15,6 +15,7 @@ actor NooraClientSpy {
     private(set) var productTypeSelections: [ProductTypeSelection]?
     private(set) var yesOrNoConfirmations: [YesOrNoConfirmation]?
     private(set) var dependenciesSelections: [DependenciesSelection]?
+    private(set) var targetSelections: [TargetSelection]?
     private(set) var operationProgresses: [OperationProgress]?
 
     func recordTextInput(configuration: NooraPromptConfiguration, argument: String?) {
@@ -71,6 +72,15 @@ actor NooraClientSpy {
         }
     }
 
+    func recordTargetSelection(configuration: NooraPromptConfiguration, options: [PackageDependency]) {
+        let selection = TargetSelection(configuration: configuration, options: options)
+        if targetSelections == nil {
+            targetSelections = [selection]
+        } else {
+            targetSelections?.append(selection)
+        }
+    }
+
     func recordOperationProgress(message: String, successMessage: String, errorMessage: String) {
         let progress = OperationProgress(message: message, successMessage: successMessage, errorMessage: errorMessage)
         if operationProgresses == nil {
@@ -108,6 +118,11 @@ extension NooraClientSpy {
     }
 
     struct DependenciesSelection {
+        let configuration: NooraPromptConfiguration
+        let options: [PackageDependency]
+    }
+
+    struct TargetSelection {
         let configuration: NooraPromptConfiguration
         let options: [PackageDependency]
     }
