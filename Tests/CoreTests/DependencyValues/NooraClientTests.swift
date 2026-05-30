@@ -5,6 +5,7 @@
 //  Created by Jozef Lipovsky on 2025-12-07.
 //
 
+import Foundation
 import Core
 import Dependencies
 import Noora
@@ -118,5 +119,43 @@ struct NooraClientTests {
             // Then
             #expect(output == false)
         }
+    }
+
+    @Test("targetSelection - returns selected target from options")
+    func targetSelection_returnsSelectedTargetFromOptions() async throws {
+        try await withDependencies {
+            $0.nooraClient = .liveValue
+            $0.nooraClient.targetSelection = { _, options in options[1] }
+        } operation: {
+            // Given
+            @Dependency(\.nooraClient) var sut
+            let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
+            let optionsStub: [PackageDependency] = [
+                .target(try targetStub(name: "TargetA")),
+                .target(try targetStub(name: "TargetB")),
+                .target(try targetStub(name: "TargetC"))
+            ]
+
+            // When
+            let output = await sut.targetSelection(configuration: configStub, options: optionsStub)
+
+            // Then
+            #expect(output.name == "TargetB")
+        }
+    }
+}
+
+private extension NooraClientTests {
+    func targetStub(name: String) throws -> PackageJSON.Target {
+        let targetJSON = Data(
+            """
+            {
+                "name": "\(name)",
+                "type": "regular"
+            }
+            """.utf8
+        )
+
+        return try JSONDecoder().decode(PackageJSON.Target.self, from: targetJSON)
     }
 }
