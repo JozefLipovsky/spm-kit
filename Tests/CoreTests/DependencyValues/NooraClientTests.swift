@@ -12,8 +12,11 @@ import Noora
 import TestHelpers
 import Testing
 
-@Suite("NooraClient Tests", .tags(.unit))
+@Suite("NooraClient Tests", .tags(.unit, .integration))
 struct NooraClientTests {
+
+    // MARK: Unit
+
     @Test("textInput - when argument is not nil - returns argument without prompting")
     func textInput_whenArgumentIsNotNil_returnsArgumentWithoutPrompting() async {
         await withDependencies {
@@ -118,6 +121,35 @@ struct NooraClientTests {
 
             // Then
             #expect(output == false)
+        }
+    }
+
+    // MARK: Integration
+
+    @Test("dependenciesSelection - returns selected dependencies from options")
+    func dependenciesSelection_returnsSelectedDependenciesFromOptions() async throws {
+        try await withDependencies {
+            $0.nooraClient = .liveValue
+            $0.nooraClient.dependenciesSelection = { _, options in [options[1], options[3]] }
+        } operation: {
+            // Given
+            @Dependency(\.nooraClient) var sut
+            let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
+            let optionsStub: [PackageDependency] = [
+                .target(try targetStub(name: "TargetA")),
+                .target(try targetStub(name: "TargetB")),
+                .target(try targetStub(name: "TargetC")),
+                .target(try targetStub(name: "TargetD")),
+                .target(try targetStub(name: "TargetE"))
+            ]
+
+            // When
+            let output = await sut.dependenciesSelection(configuration: configStub, options: optionsStub)
+
+            // Then
+            #expect(output.count == 2)
+            #expect(output[0].name == "TargetB")
+            #expect(output[1].name == "TargetD")
         }
     }
 
