@@ -54,6 +54,20 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible, Co
 }
 
 package extension [PackageDependency] {
+    /// Returns the first target dependency with the specified name, or nil if no match exists.
+    /// - Parameter targetName: The name of the target to search for.
+    /// - Returns: The matching target dependency, or nil if no `.target` with that name exists.
+    func target(named targetName: String) -> PackageDependency? {
+        first { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.name == targetName
+                case .product:
+                    return false
+            }
+        }
+    }
+
     /// Returns dependencies filtered by compatibility with the specified product type.
     /// - Parameter productType: The product type to check compatibility against.
     /// - Returns: Filtered array containing only compatible dependencies.
