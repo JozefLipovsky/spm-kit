@@ -57,7 +57,7 @@ package struct AddTargetDependencies: AsyncParsableCommand {
 // MARK: - Errors
 
 package extension AddTargetDependencies {
-    /// Errors that can be thrown by the AddModule command.
+    /// Errors that can be thrown by the AddTargetDependencies command.
     enum Error: LocalizedError, Equatable {
         /// An error indicating that the spm-kit-config.yaml file was not found.
         case configFileNotFound
