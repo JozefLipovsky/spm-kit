@@ -99,7 +99,7 @@ private extension AddTargetDependencies {
         }
 
         if let targetName {
-            guard let target = targets.first(where: { $0.name == targetName }) else {
+            guard let target = targets.target(named: targetName) else {
                 throw Error.targetNotFound(name: targetName)
             }
 
