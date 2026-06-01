@@ -22,11 +22,11 @@ package struct AddTargetDependencies: AsyncParsableCommand {
             """
     )
 
-    @Argument(help: "The name of the dependency to add.")
-    var dependencyName: String?
-
     @Argument(help: "The name of the target to which dependencies will be added.")
     var targetName: String?
+
+    @Argument(help: "The name of the dependency to add.")
+    var dependencyName: String?
 
     @Option(help: "The name of the package in which the dependency resides.")
     var package: String?
