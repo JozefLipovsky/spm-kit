@@ -112,6 +112,83 @@ struct PackageDependencyTests {
         #expect(sut == productDependencies)
         #expect(sut.count == 3)
     }
+
+    @Test("Dependencies - target named - returns matching target dependency")
+    func dependencies_targetNamed_returnsMatchingTargetDependency() throws {
+        // Given
+        let targetA = try targetStub(name: "TargetA")
+        let targetB = try targetStub(name: "TargetB")
+        let dependencies = [
+            PackageDependency.target(targetA),
+            PackageDependency.target(targetB)]
+
+        // When
+        let sut = dependencies.target(named: "TargetA")
+
+        // Then
+        #expect(sut?.name == "TargetA")
+        #expect(sut == .target(targetA))
+    }
+
+    @Test("Dependencies - target named - returns nil when target name not found")
+    func dependencies_targetNamed_returnsNilWhenTargetNameNotFound() throws {
+        // Given
+        let target = try targetStub(name: "ExistingTarget")
+        let dependencies = [PackageDependency.target(target)]
+
+        // When
+        let sut = dependencies.target(named: "NonExistent")
+
+        // Then
+        #expect(sut == nil)
+    }
+
+    @Test("Dependencies - target named - skips products to find target")
+    func dependencies_targetNamed_skipsProductsToFindTarget() throws {
+        // Given
+        let target = try targetStub(name: "StubName")
+        let product = try productStub(name: "StubName")
+        let dependencies = [
+            PackageDependency.product(product, packageName: "External"),
+            PackageDependency.target(target),
+            PackageDependency.product(product, packageName: "Other")
+        ]
+
+        // When
+        let sut = dependencies.target(named: "StubName")
+
+        // Then
+        #expect(sut?.name == "StubName")
+        #expect(sut == .target(target))
+    }
+
+    @Test("Dependencies - target named - returns nil when only products exist")
+    func dependencies_targetNamed_returnsNilWhenOnlyProductsExist() throws {
+        // Given
+        let product = try productStub(name: "StubName")
+        let dependencies = [
+            PackageDependency.product(product, packageName: "A"),
+            PackageDependency.product(product, packageName: "B")
+        ]
+
+        // When
+        let sut = dependencies.target(named: "StubName")
+
+        // Then
+        #expect(sut == nil)
+    }
+
+    @Test("Dependencies - target named - returns nil for empty array")
+    func dependencies_targetNamed_returnsNilForEmptyArray() {
+        // Given
+        let dependencies: [PackageDependency] = []
+
+        // When
+        let sut = dependencies.target(named: "anything")
+
+        // Then
+        #expect(sut == nil)
+    }
 }
 
 private extension PackageDependencyTests {
