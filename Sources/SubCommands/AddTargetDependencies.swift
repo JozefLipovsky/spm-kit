@@ -43,14 +43,15 @@ package struct AddTargetDependencies: AsyncParsableCommand {
         let configPath = try configPath(currentPath: currentPath)
         let modulesPath = try await configClient.modulesPath(atConfigPath: configPath)
 
-        let target = try await selectedTarget(
+        let (target, moduleTargets) = try await selectedTarget(
             modulesPath: modulesPath,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient,
             targetName: targetName
         )
 
-        // TODO: Add
+        print(target)
+        print(moduleTargets)
     }
 }
 
@@ -87,7 +88,7 @@ private extension AddTargetDependencies {
         nooraClient: NooraClient,
         subprocessClient: SubprocessClient,
         targetName: String?
-    ) async throws -> PackageDependency {
+    ) async throws -> (target: PackageDependency, moduleTargets: [PackageDependency]) {
         let targets = try await parseTargetDependencies(
             modulesPath: modulesPath.string,
             nooraClient: nooraClient,
@@ -103,15 +104,19 @@ private extension AddTargetDependencies {
                 throw Error.targetNotFound(name: targetName)
             }
 
-            return target
+            let moduleTargets = targets.filter { $0.name != target.name }
+            return (target, moduleTargets)
         } else {
-            return await nooraClient.targetSelection(
+            let selecteTarget = await nooraClient.targetSelection(
                 configuration: NooraPromptConfiguration(
                     title: "Target name",
                     question: "Which target would you like to add dependencies to?"
                 ),
                 options: targets
             )
+
+            let moduleTargets = targets.filter { $0.name != selecteTarget.name }
+            return (selecteTarget, moduleTargets)
         }
     }
 
