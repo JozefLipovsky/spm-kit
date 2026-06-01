@@ -148,4 +148,35 @@ package extension PackageJSON.Target {
                 return false
         }
     }
+
+    /// Checks whether this target is compatible as a dependency for the given target.
+    /// - Parameter dependencyTarget: The target that will depend on this target.
+    /// - Returns: `true` if this target can be used as a dependency for the given target type.
+    func isCompatible(asDependencyFor dependencyTarget: PackageJSON.Target) -> Bool {
+        switch dependencyTarget.type {
+            case .regular, .executable:
+                switch type {
+                    case .regular, .executable, .macro:
+                        return true
+                    case .test, .other:
+                        return false
+                }
+            case .test:
+                switch type {
+                    case .regular, .executable, .test:
+                        return true
+                    case .macro, .other:
+                        return false
+                }
+            case .macro:
+                switch type {
+                    case .regular, .executable:
+                        return true
+                    case .test, .macro, .other:
+                        return false
+                }
+            case .other:
+                return false
+        }
+    }
 }

@@ -94,4 +94,26 @@ package extension [PackageDependency] {
             }
         }
     }
+
+    /// Returns dependencies filtered by compatibility with the specified dependency.
+    /// - Parameter selectedDependency: The dependency to check compatibility against.
+    /// - Returns: Filtered array containing only compatible dependencies.
+    func compatible(withSelectedDependency selectedDependency: PackageDependency) -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let parsedTarget):
+                    let isCompatible: Bool
+                    switch selectedDependency {
+                        case .target(let selectedDependencyTarget):
+                            isCompatible = parsedTarget.isCompatible(asDependencyFor: selectedDependencyTarget)
+                        case .product:
+                            isCompatible = false
+                    }
+
+                    return isCompatible
+                case .product:
+                    return true
+            }
+        }
+    }
 }
