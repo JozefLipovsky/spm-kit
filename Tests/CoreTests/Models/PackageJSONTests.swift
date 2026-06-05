@@ -114,6 +114,91 @@ struct PackageJSONTests {
             }
         }
     }
+
+    @Test("Regular target - is compatible as dependency for - regular, executable and macro targets")
+    func regularTarget_isCompatibleAsDependencyFor_regularExecutableAndMacroTargets() throws {
+        // Given
+        let targetsStub = try targetStubs()
+        let sut = try #require(targetsStub.first(where: { $0.type == .regular }))
+
+        // When
+        targetsStub.forEach { target in
+            // Then
+            switch target.type {
+                case .regular, .executable, .macro:
+                    #expect(target.isCompatible(asDependencyFor: sut))
+                case .test, .other:
+                    #expect(!target.isCompatible(asDependencyFor: sut))
+            }
+        }
+    }
+
+    @Test("Executable target - is compatible as dependency for - regular, executable and macro targets")
+    func executableTarget_isCompatibleAsDependencyFor_regularExecutableAndMacroTargets() throws {
+        // Given
+        let targetsStub = try targetStubs()
+        let sut = try #require(targetsStub.first(where: { $0.type == .executable }))
+
+        // When
+        targetsStub.forEach { target in
+            // Then
+            switch target.type {
+                case .regular, .executable, .macro:
+                    #expect(target.isCompatible(asDependencyFor: sut))
+                case .test, .other:
+                    #expect(!target.isCompatible(asDependencyFor: sut))
+            }
+        }
+    }
+
+    @Test("Test target - is compatible as dependency for - regular, executable and test targets")
+    func testTarget_isCompatibleAsDependencyFor_regularExecutableAndTestTargets() throws {
+        // Given
+        let targetsStub = try targetStubs()
+        let sut = try #require(targetsStub.first(where: { $0.type == .test }))
+
+        // When
+        targetsStub.forEach { target in
+            // Then
+            switch target.type {
+                case .regular, .executable, .test:
+                    #expect(target.isCompatible(asDependencyFor: sut))
+                case .macro, .other:
+                    #expect(!target.isCompatible(asDependencyFor: sut))
+            }
+        }
+    }
+
+    @Test("Macro target - is compatible as dependency for - regular and executable targets")
+    func macroTarget_isCompatibleAsDependencyFor_regularAndExecutableTargets() throws {
+        // Given
+        let targetsStub = try targetStubs()
+        let sut = try #require(targetsStub.first(where: { $0.type == .macro }))
+
+        // When
+        targetsStub.forEach { target in
+            // Then
+            switch target.type {
+                case .regular, .executable:
+                    #expect(target.isCompatible(asDependencyFor: sut))
+                case .test, .macro, .other:
+                    #expect(!target.isCompatible(asDependencyFor: sut))
+            }
+        }
+    }
+
+    @Test("Other target - is not compatible as dependency for - any target types")
+    func otherTarget_isNotCompatibleAsDependencyForAnyTarget() throws {
+        // Given
+        let targetsStub = try targetStubs()
+        let sut = try #require(targetsStub.first(where: { $0.type == .other }))
+
+        // When
+        targetsStub.forEach { target in
+            // Then
+            #expect(!target.isCompatible(asDependencyFor: sut))
+        }
+    }
 }
 
 private extension PackageJSONTests {
