@@ -22,7 +22,7 @@ struct PackageDependencyTests {
         let sut = PackageDependency.target(target)
 
         // Then
-        #expect(sut.name == "TestTarget")
+        #expect(sut.name == "StubTarget")
     }
 
     @Test("Target case - package - returns nil")
@@ -46,7 +46,7 @@ struct PackageDependencyTests {
         let sut = PackageDependency.target(target)
 
         // Then
-        #expect(sut.description == ".target(name: \"TestTarget\")")
+        #expect(sut.description == ".target(name: \"StubTarget\")")
     }
 
     @Test("Product case - name - returns product name")
@@ -189,15 +189,113 @@ struct PackageDependencyTests {
         // Then
         #expect(sut == nil)
     }
+
+    @Test("Dependencies - compatible with selected dependency - products always pass through")
+    func dependencies_compatibleWithSelectedDependency_productsAlwaysPassThrough() throws {
+        // Given
+        let regularTargetStub = try targetStub(type: "regular")
+        let testTargetStub = try targetStub(type: "test")
+        let productStub = try productStub(name: "TestProduct")
+        let dependencies = [
+            PackageDependency.target(regularTargetStub),
+            PackageDependency.target(testTargetStub),
+            PackageDependency.product(productStub, packageName: "ExternalA"),
+            PackageDependency.product(productStub, packageName: "ExternalB")
+        ]
+
+        // When
+        let selectedTarget = try targetStub(type: "regular")
+        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+
+        // Then
+        #expect(sut.count == 3)
+        #expect(sut[0] == .target(regularTargetStub))
+        #expect(sut[1] == .product(productStub, packageName: "ExternalA"))
+        #expect(sut[2] == .product(productStub, packageName: "ExternalB"))
+    }
+
+    @Test("Dependencies - compatible with regular target dependency - filters out test targets")
+    func dependencies_compatibleWithRegularTargetDependency_filtersOutTestTargets() throws {
+        // Given
+        let dependencies = try availableTargetDependenciesStub()
+
+        // When
+        let selectedTarget = try targetStub(type: "regular")
+        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+
+        // Then
+        let regularTarget = try targetStub(type: "regular")
+        let executableTarget = try targetStub(type: "executable")
+        let macroTarget = try targetStub(type: "macro")
+        #expect(sut.count == 3)
+        #expect(sut[0] == .target(regularTarget))
+        #expect(sut[1] == .target(executableTarget))
+        #expect(sut[2] == .target(macroTarget))
+    }
+
+    @Test("Dependencies - compatible with executable target dependency - filters out test targets")
+    func dependencies_compatibleWithExecutableTargetDependency_filtersOutTestTargets() throws {
+        // Given
+        let dependencies = try availableTargetDependenciesStub()
+
+        // When
+        let selectedTarget = try targetStub(type: "executable")
+        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+
+        // Then
+        let regularTarget = try targetStub(type: "regular")
+        let executableTarget = try targetStub(type: "executable")
+        let macroTarget = try targetStub(type: "macro")
+        #expect(sut.count == 3)
+        #expect(sut[0] == .target(regularTarget))
+        #expect(sut[1] == .target(executableTarget))
+        #expect(sut[2] == .target(macroTarget))
+    }
+
+    @Test("Dependencies - compatible with macro target dependency - filters out test and macro targets")
+    func dependencies_compatibleWithMacroTargetDependency_filtersOutTestAndMacroTargets() throws {
+        // Given
+        let dependencies = try availableTargetDependenciesStub()
+
+        // When
+        let selectedTarget = try targetStub(type: "macro")
+        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+
+        // Then
+        let regularTarget = try targetStub(type: "regular")
+        let executableTarget = try targetStub(type: "executable")
+        #expect(sut.count == 2)
+        #expect(sut[0] == .target(regularTarget))
+        #expect(sut[1] == .target(executableTarget))
+    }
+
+    @Test("Dependencies - compatible with test target dependency - filters out and macro targets")
+    func dependencies_compatibleWithTestTargetDependency_filtersOutTestAndMacroTargets() throws {
+        // Given
+        let dependencies = try availableTargetDependenciesStub()
+
+        // When
+        let selectedTarget = try targetStub(type: "test")
+        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+
+        // Then
+        let regularTarget = try targetStub(type: "regular")
+        let executableTarget = try targetStub(type: "executable")
+        let testTarget = try targetStub(type: "test")
+        #expect(sut.count == 3)
+        #expect(sut[0] == .target(regularTarget))
+        #expect(sut[1] == .target(executableTarget))
+        #expect(sut[2] == .target(testTarget))
+    }
 }
 
 private extension PackageDependencyTests {
-    func targetStub(name: String = "TestTarget") throws -> PackageJSON.Target {
+    func targetStub(name: String = "StubTarget", type: String = "regular") throws -> PackageJSON.Target {
         let targetJSON = Data(
             """
             {
                 "name": "\(name)",
-                "type": "regular"
+                "type": "\(type)"
             }
             """.utf8
         )
@@ -224,6 +322,16 @@ private extension PackageDependencyTests {
             .product(productStub, packageName: "product A"),
             .product(productStub, packageName: "product B"),
             .product(productStub, packageName: "product C")
+        ]
+    }
+
+    func availableTargetDependenciesStub() throws -> [PackageDependency] {
+        [
+            PackageDependency.target(try targetStub(type: "regular")),
+            PackageDependency.target(try targetStub(type: "executable")),
+            PackageDependency.target(try targetStub(type: "macro")),
+            PackageDependency.target(try targetStub(type: "test")),
+            PackageDependency.target(try targetStub(type: "other"))
         ]
     }
 }
