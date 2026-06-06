@@ -36,16 +36,36 @@ package struct AddTargetDependencies: AsyncParsableCommand {
         let currentPath = try pathClient.current()
         let configPath = try configPath(currentPath: currentPath)
         let modulesPath = try await configClient.modulesPath(atConfigPath: configPath)
+        let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
 
-        let (target, moduleTargets) = try await selectedTarget(
+        let (selectedTarget, moduleTargets) = try await selectedTarget(
             modulesPath: modulesPath,
             nooraClient: nooraClient,
             subprocessClient: subprocessClient,
             targetName: targetName
         )
 
-        print(target)
-        print(moduleTargets)
+        let dependencies = try await selectedDependencies(
+            target: selectedTarget,
+            moduleTargets: moduleTargets,
+            modulesPath: modulesPath,
+            nooraClient: nooraClient,
+            subprocessClient: subprocessClient
+        )
+
+        try await addTargetDependencies(
+            dependencies,
+            to: selectedTarget,
+            at: modulesPath,
+            subprocessClient: subprocessClient
+        )
+
+        try await runSwiftFormat(
+            at: modulesPath,
+            swiftFormatConfigPath: swiftFormatConfigPath,
+            subprocessClient: subprocessClient,
+            nooraClient: nooraClient
+        )
     }
 }
 
@@ -103,7 +123,7 @@ private extension AddTargetDependencies {
         } else {
             let selecteTarget = await nooraClient.targetSelection(
                 configuration: NooraPromptConfiguration(
-                    title: "Target name",
+                    title: "Selected target",
                     question: "Which target would you like to add dependencies to?"
                 ),
                 options: targets
@@ -111,6 +131,37 @@ private extension AddTargetDependencies {
 
             let moduleTargets = targets.filter { $0.name != selecteTarget.name }
             return (selecteTarget, moduleTargets)
+        }
+    }
+
+    func selectedDependencies(
+        target: PackageDependency,
+        moduleTargets: [PackageDependency],
+        modulesPath: Path,
+        nooraClient: NooraClient,
+        subprocessClient: SubprocessClient,
+    ) async throws -> [PackageDependency] {
+        let path = modulesPath.string
+
+        let products = try await parseProductDependencies(
+            modulesPath: path,
+            nooraClient: nooraClient,
+            subprocessClient: subprocessClient
+        )
+
+        let availableDependencies = moduleTargets + products
+        let compatibleDependencies = availableDependencies.compatible(withSelectedDependency: target)
+        if compatibleDependencies.isEmpty {
+            await nooraClient.info("No compatible dependencies found.")
+            return []
+        } else {
+            return await nooraClient.dependenciesSelection(
+                configuration: NooraPromptConfiguration(
+                    title: "Selected target dependencies",
+                    question: "Which dependencies would you like to add to the selected target?"
+                ),
+                options: compatibleDependencies
+            )
         }
     }
 
@@ -127,6 +178,31 @@ private extension AddTargetDependencies {
             let path = Path(modulesPath)
             let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
             return packageJSON.targets.map { PackageDependency.target($0) }.sorted()
+        } as? [PackageDependency] ?? []
+    }
+
+    func parseProductDependencies(
+        modulesPath: String,
+        nooraClient: NooraClient,
+        subprocessClient: SubprocessClient
+    ) async throws -> [PackageDependency] {
+        try await nooraClient.progress(
+            message: "Parsing product dependencies",
+            successMessage: "Product dependencies parsed",
+            errorMessage: "Product dependencies parse failed"
+        ) { _ in
+            let path = Path(modulesPath)
+            let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
+
+            var productDependencies: [PackageDependency] = []
+            for dependency in dependencies.dependencies {
+                let path = dependency.path.path
+                let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
+                let products = packageJSON.products.map { PackageDependency.product($0, packageName: packageJSON.name) }
+                productDependencies.append(contentsOf: products)
+            }
+
+            return productDependencies.sorted()
         } as? [PackageDependency] ?? []
     }
 }
@@ -160,5 +236,51 @@ private extension AddTargetDependencies {
         )
 
         return try JSONDecoder().decode(PackageGraphDependencies.self, from: output)
+    }
+
+    func addTargetDependencies(
+        _ dependencies: [PackageDependency],
+        to target: PackageDependency,
+        at path: Path,
+        subprocessClient: SubprocessClient
+    ) async throws {
+        for dependency in dependencies {
+            try await subprocessClient.run(
+                command: .swift(
+                    .package(
+                        .addTargetDependency(
+                            dependencyName: dependency.name,
+                            targetName: target.name,
+                            package: dependency.package
+                        ),
+                        useCustomScratchPath: true
+                    )
+                ),
+                workingDirectory: path.systemFilePath
+            )
+        }
+    }
+
+    func runSwiftFormat(
+        at path: Path,
+        swiftFormatConfigPath: Path,
+        subprocessClient: SubprocessClient,
+        nooraClient: NooraClient
+    ) async throws {
+        let workingDirectory = path.systemFilePath
+        let swiftFormatConfiguration = swiftFormatConfigPath.string
+
+        _ = try await nooraClient.progress(
+            message: "Running Swift Format",
+            successMessage: "Swift Format changes applied",
+            errorMessage: "Swift Format failed"
+        ) { _ in
+            try await subprocessClient.run(
+                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfiguration))),
+                workingDirectory: workingDirectory
+            )
+
+            return ()
+        }
     }
 }
