@@ -18,18 +18,12 @@ package struct AddTargetDependencies: AsyncParsableCommand {
         abstract: "Adds dependencies to an existing target in the current SPM project.",
         discussion:
             """
-            Adds additional existing dependencies to an existing target in the Swift package. The target and dependencies can be provided via command-line arguments; missing values will be prompted for interactively.
+            Adds additional existing dependencies to an existing target in the Swift package manifest. The target can be provided via command-line argument; missing target value and dependencies will be prompted for interactively.
             """
     )
 
     @Argument(help: "The name of the target to which dependencies will be added.")
     var targetName: String?
-
-    @Argument(help: "The name of the dependency to add.")
-    var dependencyName: String?
-
-    @Option(help: "The name of the package in which the dependency resides.")
-    var package: String?
 
     package init() {}
 
