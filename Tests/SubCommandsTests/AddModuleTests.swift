@@ -382,7 +382,7 @@ struct AddModuleTests {
         var sut = try await AddModule.parse(arguments)
 
         // When
-        let error = await #expect(throws: AddModule.Error.self) {
+        let error = await #expect(throws: SubcommandError.self) {
             try await sut.run()
         }
 

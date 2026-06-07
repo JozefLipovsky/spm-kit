@@ -43,7 +43,7 @@ package struct AddModule: AsyncParsableCommand {
         @Dependency(\.subprocessClient) var subprocessClient
 
         let currentPath = try pathClient.current()
-        let configPath = try self.configPath(currentPath: currentPath)
+        let configPath = try configPath(currentPath: currentPath)
         let modulesPath = try await configClient.modulesPath(atConfigPath: configPath)
         let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
 
@@ -98,7 +98,7 @@ package struct AddModule: AsyncParsableCommand {
 
         try await runSwiftFormat(
             at: currentPath,
-            swiftFormatConfigPath: swiftFormatConfigPath.string,
+            swiftFormatConfigPath: swiftFormatConfigPath,
             subprocessClient: subprocessClient,
             nooraClient: nooraClient
         )
@@ -210,47 +210,6 @@ private extension AddModule {
         )
     }
 
-    func parseTargetDependencies(
-        modulesPath: String,
-        nooraClient: NooraClient,
-        subprocessClient: SubprocessClient
-    ) async throws -> [PackageDependency] {
-        try await nooraClient.progress(
-            message: "Parsing target dependencies",
-            successMessage: "Target dependencies parsed",
-            errorMessage: "Target dependencies parse failed"
-        ) { _ in
-            let path = Path(modulesPath)
-            let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
-            return packageJSON.targets.map { PackageDependency.target($0) }.sorted()
-        } as? [PackageDependency] ?? []
-    }
-
-    func parseProductDependencies(
-        modulesPath: String,
-        nooraClient: NooraClient,
-        subprocessClient: SubprocessClient
-    ) async throws -> [PackageDependency] {
-        try await nooraClient.progress(
-            message: "Parsing product dependencies",
-            successMessage: "Product dependencies parsed",
-            errorMessage: "Product dependencies parse failed"
-        ) { _ in
-            let path = Path(modulesPath)
-            let dependencies = try await packageGraphDependencies(atPath: path, subprocessClient: subprocessClient)
-
-            var productDependencies: [PackageDependency] = []
-            for dependency in dependencies.dependencies {
-                let path = dependency.path.path
-                let packageJSON = try await packageJSON(atPath: path, subprocessClient: subprocessClient)
-                let products = packageJSON.products.map { PackageDependency.product($0, packageName: packageJSON.name) }
-                productDependencies.append(contentsOf: products)
-            }
-
-            return productDependencies.sorted()
-        } as? [PackageDependency] ?? []
-    }
-
     func availableDependencies(
         modulesPath: Path,
         nooraClient: NooraClient,
@@ -283,34 +242,6 @@ private extension AddModule {
 // MARK: - Helpers
 
 private extension AddModule {
-    func configPath(currentPath: Path) throws -> Path {
-        guard let configPath = currentPath.ancestor(containing: "spm-kit-config.yaml") else {
-            throw Error.configFileNotFound
-        }
-        return configPath
-    }
-
-    func packageJSON(atPath path: Path, subprocessClient: SubprocessClient) async throws -> PackageJSON {
-        let output = try await subprocessClient.runAndCapture(
-            command: .swift(.package(.dumpPackage)),
-            workingDirectory: path.systemFilePath
-        )
-
-        return try JSONDecoder().decode(PackageJSON.self, from: output)
-    }
-
-    func packageGraphDependencies(
-        atPath path: Path,
-        subprocessClient: SubprocessClient
-    ) async throws -> PackageGraphDependencies {
-        let output = try await subprocessClient.runAndCapture(
-            command: .swift(.package(.showDependencies(format: .json))),
-            workingDirectory: path.systemFilePath
-        )
-
-        return try JSONDecoder().decode(PackageGraphDependencies.self, from: output)
-    }
-
     func addProduct(
         at path: Path,
         moduleName: String,
@@ -415,51 +346,6 @@ private extension AddModule {
             }
 
             return ()
-        }
-    }
-
-    func runSwiftFormat(
-        at path: Path,
-        swiftFormatConfigPath: String,
-        subprocessClient: SubprocessClient,
-        nooraClient: NooraClient
-    ) async throws {
-        let workingDirectory = path.systemFilePath
-
-        _ = try await nooraClient.progress(
-            message: "Running Swift Format",
-            successMessage: "Swift Format changes applied",
-            errorMessage: "Swift Format failed"
-        ) { _ in
-            try await subprocessClient.run(
-                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPath))),
-                workingDirectory: workingDirectory
-            )
-
-            return ()
-        }
-    }
-
-    func addTargetDependencies(
-        _ dependencies: [PackageDependency],
-        to targetName: String,
-        at path: Path,
-        subprocessClient: SubprocessClient
-    ) async throws {
-        for dependency in dependencies {
-            try await subprocessClient.run(
-                command: .swift(
-                    .package(
-                        .addTargetDependency(
-                            dependencyName: dependency.name,
-                            targetName: targetName,
-                            package: dependency.package
-                        ),
-                        useCustomScratchPath: true
-                    )
-                ),
-                workingDirectory: path.systemFilePath
-            )
         }
     }
 }
