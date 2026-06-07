@@ -735,17 +735,5 @@ struct BootstrapErrorTests {
         // Then
         #expect(sut == "Validation failed: " + message)
     }
-
-    @Test("errorDescription - with configFileNotFound error - returns expected message")
-    func errorDescription_withConfigFileNotFoundError_returnsExpectedMessage() {
-        // Given
-        let error = Bootstrap.Error.configFileNotFound
-
-        // When
-        let sut = error.errorDescription
-
-        // Then
-        #expect(sut == "Could not find 'spm-kit-config.yaml'. Ensure you are inside a valid project directory.")
-    }
 }
 // swiftlint:enable function_body_length type_body_length

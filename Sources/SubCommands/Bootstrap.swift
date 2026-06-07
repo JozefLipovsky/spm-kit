@@ -127,9 +127,11 @@ package struct Bootstrap: AsyncParsableCommand {
             throw error
         }
 
+        let configPath = try configPath(currentPath: projectBasePath)
+        let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
         try await runSwiftFormat(
             at: projectBasePath,
-            configClient: configClient,
+            swiftFormatConfigPath: swiftFormatConfigPath,
             subprocessClient: subprocessClient,
             nooraClient: nooraClient
         )
@@ -143,15 +145,11 @@ package extension Bootstrap {
     enum Error: LocalizedError, Equatable {
         /// An error indicating that a command's preconditions have not been met.
         case validation(message: String)
-        /// An error indicating that the spm-kit-config.yaml file was not found.
-        case configFileNotFound
 
         package var errorDescription: String? {
             switch self {
                 case .validation(let message):
                     return "Validation failed: " + message
-                case .configFileNotFound:
-                    return "Could not find 'spm-kit-config.yaml'. Ensure you are inside a valid project directory."
             }
         }
     }
@@ -492,34 +490,6 @@ private extension Bootstrap {
             try await stencilTemplateClient.processSelectedTargetsAppTemplates(
                 targetAppTemplates: projectConfig.selectedTargetsAppTemplates,
                 moduleName: rootModule
-            )
-
-            return ()
-        }
-    }
-
-    func runSwiftFormat(
-        at projectBasePath: Path,
-        configClient: ConfigClient,
-        subprocessClient: SubprocessClient,
-        nooraClient: NooraClient
-    ) async throws {
-        guard let configPath = projectBasePath.ancestor(containing: "spm-kit-config.yaml") else {
-            throw Error.configFileNotFound
-        }
-
-        let swiftFormatConfigPath = try await configClient.swiftFormatConfigPath(atConfigPath: configPath)
-        let projectBaseDirectory = projectBasePath.systemFilePath
-        let swiftFormatConfigPathString = swiftFormatConfigPath.string
-
-        _ = try await nooraClient.progress(
-            message: "Running Swift Format",
-            successMessage: "Swift Format changes applied",
-            errorMessage: "Swift Format failed"
-        ) { _ in
-            try await subprocessClient.run(
-                command: .swift(.format(.recursiveInPlace(configurationPath: swiftFormatConfigPathString))),
-                workingDirectory: projectBaseDirectory
             )
 
             return ()
