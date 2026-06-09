@@ -116,25 +116,22 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - returns matching target dependency")
     func dependencies_targetNamed_returnsMatchingTargetDependency() throws {
         // Given
-        let targetA = try PackageJSON.Target.stub(name: "TargetA")
-        let targetB = try PackageJSON.Target.stub(name: "TargetB")
-        let dependencies = [
-            PackageDependency.target(targetA),
-            PackageDependency.target(targetB)]
+        let targetStubA = try PackageDependency.targetStub(name: "TargetA")
+        let targetStubB = try PackageDependency.targetStub(name: "TargetB")
+        let dependencies = [targetStubA, targetStubB]
 
         // When
         let sut = dependencies.target(named: "TargetA")
 
         // Then
         #expect(sut?.name == "TargetA")
-        #expect(sut == .target(targetA))
+        #expect(sut == targetStubA)
     }
 
     @Test("Dependencies - target named - returns nil when target name not found")
     func dependencies_targetNamed_returnsNilWhenTargetNameNotFound() throws {
         // Given
-        let target = try PackageJSON.Target.stub(name: "ExistingTarget")
-        let dependencies = [PackageDependency.target(target)]
+        let dependencies = [try PackageDependency.targetStub(name: "ExistingTarget")]
 
         // When
         let sut = dependencies.target(named: "NonExistent")
@@ -146,12 +143,11 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - skips products to find target")
     func dependencies_targetNamed_skipsProductsToFindTarget() throws {
         // Given
-        let target = try PackageJSON.Target.stub(name: "StubName")
-        let product = try PackageJSON.Product.stub(name: "StubName")
+        let targetStub = try PackageDependency.targetStub(name: "StubName")
         let dependencies = [
-            PackageDependency.product(product, packageName: "External"),
-            PackageDependency.target(target),
-            PackageDependency.product(product, packageName: "Other")
+            try PackageDependency.productStub(name: "StubName", packageName: "External"),
+            targetStub,
+            try PackageDependency.productStub(name: "StubName", packageName: "Other")
         ]
 
         // When
@@ -159,16 +155,15 @@ struct PackageDependencyTests {
 
         // Then
         #expect(sut?.name == "StubName")
-        #expect(sut == .target(target))
+        #expect(sut == targetStub)
     }
 
     @Test("Dependencies - target named - returns nil when only products exist")
     func dependencies_targetNamed_returnsNilWhenOnlyProductsExist() throws {
         // Given
-        let product = try PackageJSON.Product.stub(name: "StubName")
         let dependencies = [
-            PackageDependency.product(product, packageName: "A"),
-            PackageDependency.product(product, packageName: "B")
+            try PackageDependency.productStub(name: "StubName", packageName: "A"),
+            try PackageDependency.productStub(name: "StubName", packageName: "B")
         ]
 
         // When
@@ -193,25 +188,24 @@ struct PackageDependencyTests {
     @Test("Dependencies - compatible with selected dependency - products always pass through")
     func dependencies_compatibleWithSelectedDependency_productsAlwaysPassThrough() throws {
         // Given
-        let regularTargetStub = try PackageJSON.Target.stub(type: .regular)
-        let testTargetStub = try PackageJSON.Target.stub(type: .test)
-        let productStub = try PackageJSON.Product.stub()
+        let targetStub = try PackageDependency.targetStub(type: .regular)
+        let productStubA = try PackageDependency.productStub(packageName: "ExternalA")
+        let productStubB = try PackageDependency.productStub(packageName: "ExternalB")
         let dependencies = [
-            PackageDependency.target(regularTargetStub),
-            PackageDependency.target(testTargetStub),
-            PackageDependency.product(productStub, packageName: "ExternalA"),
-            PackageDependency.product(productStub, packageName: "ExternalB")
+            targetStub,
+            try PackageDependency.targetStub(type: .test),
+            productStubA,
+            productStubB
         ]
 
         // When
-        let selectedTarget = try PackageJSON.Target.stub(type: .regular)
-        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .regular))
 
         // Then
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(regularTargetStub))
-        #expect(sut[1] == .product(productStub, packageName: "ExternalA"))
-        #expect(sut[2] == .product(productStub, packageName: "ExternalB"))
+        #expect(sut[0] == targetStub)
+        #expect(sut[1] == productStubA)
+        #expect(sut[2] == productStubB)
     }
 
     @Test("Dependencies - compatible with regular target dependency - filters out test targets")
@@ -220,14 +214,16 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try PackageJSON.Target.stub(type: .regular)
-        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .regular))
 
         // Then
+        let expectedRegularTarget = try PackageDependency.targetStub(type: .regular)
+        let expectedExecutableTarget = try PackageDependency.targetStub(type: .executable)
+        let expectedMacroTarget = try PackageDependency.targetStub(type: .macro)
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
-        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
-        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .macro)))
+        #expect(sut[0] == expectedRegularTarget)
+        #expect(sut[1] == expectedExecutableTarget)
+        #expect(sut[2] == expectedMacroTarget)
     }
 
     @Test("Dependencies - compatible with executable target dependency - filters out test targets")
@@ -236,14 +232,16 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try PackageJSON.Target.stub(type: .executable)
-        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .executable))
 
         // Then
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
-        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
-        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .macro)))
+        let expectedRegularTarget = try PackageDependency.targetStub(type: .regular)
+        let expectedExecutableTarget = try PackageDependency.targetStub(type: .executable)
+        let expectedMacroTarget = try PackageDependency.targetStub(type: .macro)
+        #expect(sut[0] == expectedRegularTarget)
+        #expect(sut[1] == expectedExecutableTarget)
+        #expect(sut[2] == expectedMacroTarget)
     }
 
     @Test("Dependencies - compatible with macro target dependency - filters out test and macro targets")
@@ -252,49 +250,51 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try PackageJSON.Target.stub(type: .macro)
-        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .macro))
 
         // Then
         #expect(sut.count == 2)
-        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
-        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
+        let expectedRegularTarget = try PackageDependency.targetStub(type: .regular)
+        let expectedExecutableTarget = try PackageDependency.targetStub(type: .executable)
+        #expect(sut[0] == expectedRegularTarget)
+        #expect(sut[1] == expectedExecutableTarget)
     }
 
-    @Test("Dependencies - compatible with test target dependency - filters out and macro targets")
-    func dependencies_compatibleWithTestTargetDependency_filtersOutTestAndMacroTargets() throws {
+    @Test("Dependencies - compatible with test target dependency - filters out macro targets")
+    func dependencies_compatibleWithTestTargetDependency_filtersOutMacroTargets() throws {
         // Given
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try PackageJSON.Target.stub(type: .test)
-        let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
+        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .test))
 
         // Then
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
-        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
-        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .test)))
+        let expectedRegularTarget = try PackageDependency.targetStub(type: .regular)
+        let expectedExecutableTarget = try PackageDependency.targetStub(type: .executable)
+        let expectedTestTarget = try PackageDependency.targetStub(type: .test)
+        #expect(sut[0] == expectedRegularTarget)
+        #expect(sut[1] == expectedExecutableTarget)
+        #expect(sut[2] == expectedTestTarget)
     }
 }
 
 private extension PackageDependencyTests {
     func productOnlyDependenciesStub() throws -> [PackageDependency] {
-        let productStub = try PackageJSON.Product.stub()
-        return [
-            .product(productStub, packageName: "product A"),
-            .product(productStub, packageName: "product B"),
-            .product(productStub, packageName: "product C")
+        [
+            try PackageDependency.productStub(packageName: "product A"),
+            try PackageDependency.productStub(packageName: "product B"),
+            try PackageDependency.productStub(packageName: "product C")
         ]
     }
 
     func availableTargetDependenciesStub() throws -> [PackageDependency] {
         [
-            PackageDependency.target(try PackageJSON.Target.stub(type: .regular)),
-            PackageDependency.target(try PackageJSON.Target.stub(type: .executable)),
-            PackageDependency.target(try PackageJSON.Target.stub(type: .macro)),
-            PackageDependency.target(try PackageJSON.Target.stub(type: .test)),
-            PackageDependency.target(try PackageJSON.Target.stub(type: .other))
+            try PackageDependency.targetStub(type: .regular),
+            try PackageDependency.targetStub(type: .executable),
+            try PackageDependency.targetStub(type: .macro),
+            try PackageDependency.targetStub(type: .test),
+            try PackageDependency.targetStub(type: .other)
         ]
     }
 }
