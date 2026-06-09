@@ -16,19 +16,19 @@ struct PackageDependencyTests {
     @Test("Target case - name - returns target name")
     func targetCase_name_returnsTargetName() throws {
         // Given
-        let target = try targetStub()
+        let target = try PackageJSON.Target.stub()
 
         // When
         let sut = PackageDependency.target(target)
 
         // Then
-        #expect(sut.name == "StubTarget")
+        #expect(sut.name == "TargetStub")
     }
 
     @Test("Target case - package - returns nil")
     func targetCase_package_returnsNil() throws {
         // Given
-        let target = try targetStub()
+        let target = try PackageJSON.Target.stub()
 
         // When
         let sut = PackageDependency.target(target)
@@ -40,31 +40,31 @@ struct PackageDependencyTests {
     @Test("Target case - description - returns formatted string")
     func targetCase_description_returnsFormattedString() throws {
         // Given
-        let target = try targetStub()
+        let target = try PackageJSON.Target.stub()
 
         // When
         let sut = PackageDependency.target(target)
 
         // Then
-        #expect(sut.description == ".target(name: \"StubTarget\")")
+        #expect(sut.description == ".target(name: \"TargetStub\")")
     }
 
     @Test("Product case - name - returns product name")
     func productCase_name_returnsProductName() throws {
         // Given
-        let product = try productStub()
+        let product = try PackageJSON.Product.stub()
 
         // When
         let sut = PackageDependency.product(product, packageName: "TestPackage")
 
         // Then
-        #expect(sut.name == "TestProduct")
+        #expect(sut.name == "ProductStub")
     }
 
     @Test("Product case - package - returns package name")
     func productCase_package_returnsPackageName() throws {
         // Given
-        let product = try productStub()
+        let product = try PackageJSON.Product.stub()
 
         // When
         let sut = PackageDependency.product(product, packageName: "TestPackage")
@@ -76,13 +76,13 @@ struct PackageDependencyTests {
     @Test("Product case - description - returns formatted string")
     func productCase_description_returnsFormattedString() throws {
         // Given
-        let product = try productStub()
+        let product = try PackageJSON.Product.stub()
 
         // When
         let sut = PackageDependency.product(product, packageName: "TestPackage")
 
         // Then
-        #expect(sut.description == ".product(name: \"TestProduct\", package: \"TestPackage\")")
+        #expect(sut.description == ".product(name: \"ProductStub\", package: \"TestPackage\")")
     }
 
     @Test("Dependencies - compatible with product type - products always pass through")
@@ -116,8 +116,8 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - returns matching target dependency")
     func dependencies_targetNamed_returnsMatchingTargetDependency() throws {
         // Given
-        let targetA = try targetStub(name: "TargetA")
-        let targetB = try targetStub(name: "TargetB")
+        let targetA = try PackageJSON.Target.stub(name: "TargetA")
+        let targetB = try PackageJSON.Target.stub(name: "TargetB")
         let dependencies = [
             PackageDependency.target(targetA),
             PackageDependency.target(targetB)]
@@ -133,7 +133,7 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - returns nil when target name not found")
     func dependencies_targetNamed_returnsNilWhenTargetNameNotFound() throws {
         // Given
-        let target = try targetStub(name: "ExistingTarget")
+        let target = try PackageJSON.Target.stub(name: "ExistingTarget")
         let dependencies = [PackageDependency.target(target)]
 
         // When
@@ -146,8 +146,8 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - skips products to find target")
     func dependencies_targetNamed_skipsProductsToFindTarget() throws {
         // Given
-        let target = try targetStub(name: "StubName")
-        let product = try productStub(name: "StubName")
+        let target = try PackageJSON.Target.stub(name: "StubName")
+        let product = try PackageJSON.Product.stub(name: "StubName")
         let dependencies = [
             PackageDependency.product(product, packageName: "External"),
             PackageDependency.target(target),
@@ -165,7 +165,7 @@ struct PackageDependencyTests {
     @Test("Dependencies - target named - returns nil when only products exist")
     func dependencies_targetNamed_returnsNilWhenOnlyProductsExist() throws {
         // Given
-        let product = try productStub(name: "StubName")
+        let product = try PackageJSON.Product.stub(name: "StubName")
         let dependencies = [
             PackageDependency.product(product, packageName: "A"),
             PackageDependency.product(product, packageName: "B")
@@ -193,9 +193,9 @@ struct PackageDependencyTests {
     @Test("Dependencies - compatible with selected dependency - products always pass through")
     func dependencies_compatibleWithSelectedDependency_productsAlwaysPassThrough() throws {
         // Given
-        let regularTargetStub = try targetStub(type: "regular")
-        let testTargetStub = try targetStub(type: "test")
-        let productStub = try productStub(name: "TestProduct")
+        let regularTargetStub = try PackageJSON.Target.stub(type: .regular)
+        let testTargetStub = try PackageJSON.Target.stub(type: .test)
+        let productStub = try PackageJSON.Product.stub()
         let dependencies = [
             PackageDependency.target(regularTargetStub),
             PackageDependency.target(testTargetStub),
@@ -204,7 +204,7 @@ struct PackageDependencyTests {
         ]
 
         // When
-        let selectedTarget = try targetStub(type: "regular")
+        let selectedTarget = try PackageJSON.Target.stub(type: .regular)
         let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
 
         // Then
@@ -220,17 +220,14 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try targetStub(type: "regular")
+        let selectedTarget = try PackageJSON.Target.stub(type: .regular)
         let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
 
         // Then
-        let regularTarget = try targetStub(type: "regular")
-        let executableTarget = try targetStub(type: "executable")
-        let macroTarget = try targetStub(type: "macro")
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(regularTarget))
-        #expect(sut[1] == .target(executableTarget))
-        #expect(sut[2] == .target(macroTarget))
+        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
+        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
+        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .macro)))
     }
 
     @Test("Dependencies - compatible with executable target dependency - filters out test targets")
@@ -239,17 +236,14 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try targetStub(type: "executable")
+        let selectedTarget = try PackageJSON.Target.stub(type: .executable)
         let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
 
         // Then
-        let regularTarget = try targetStub(type: "regular")
-        let executableTarget = try targetStub(type: "executable")
-        let macroTarget = try targetStub(type: "macro")
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(regularTarget))
-        #expect(sut[1] == .target(executableTarget))
-        #expect(sut[2] == .target(macroTarget))
+        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
+        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
+        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .macro)))
     }
 
     @Test("Dependencies - compatible with macro target dependency - filters out test and macro targets")
@@ -258,15 +252,13 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try targetStub(type: "macro")
+        let selectedTarget = try PackageJSON.Target.stub(type: .macro)
         let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
 
         // Then
-        let regularTarget = try targetStub(type: "regular")
-        let executableTarget = try targetStub(type: "executable")
         #expect(sut.count == 2)
-        #expect(sut[0] == .target(regularTarget))
-        #expect(sut[1] == .target(executableTarget))
+        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
+        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
     }
 
     @Test("Dependencies - compatible with test target dependency - filters out and macro targets")
@@ -275,49 +267,20 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let selectedTarget = try targetStub(type: "test")
+        let selectedTarget = try PackageJSON.Target.stub(type: .test)
         let sut = dependencies.compatible(withSelectedDependency: .target(selectedTarget))
 
         // Then
-        let regularTarget = try targetStub(type: "regular")
-        let executableTarget = try targetStub(type: "executable")
-        let testTarget = try targetStub(type: "test")
         #expect(sut.count == 3)
-        #expect(sut[0] == .target(regularTarget))
-        #expect(sut[1] == .target(executableTarget))
-        #expect(sut[2] == .target(testTarget))
+        #expect(sut[0] == .target(try PackageJSON.Target.stub(type: .regular)))
+        #expect(sut[1] == .target(try PackageJSON.Target.stub(type: .executable)))
+        #expect(sut[2] == .target(try PackageJSON.Target.stub(type: .test)))
     }
 }
 
 private extension PackageDependencyTests {
-    func targetStub(name: String = "StubTarget", type: String = "regular") throws -> PackageJSON.Target {
-        let targetJSON = Data(
-            """
-            {
-                "name": "\(name)",
-                "type": "\(type)"
-            }
-            """.utf8
-        )
-
-        return try JSONDecoder().decode(PackageJSON.Target.self, from: targetJSON)
-    }
-
-    func productStub(name: String = "TestProduct") throws -> PackageJSON.Product {
-        let productJSON = Data(
-            """
-            {
-                "name": "\(name)",
-                "type": { "library": ["automatic"] }
-            }
-            """.utf8
-        )
-
-        return try JSONDecoder().decode(PackageJSON.Product.self, from: productJSON)
-    }
-
     func productOnlyDependenciesStub() throws -> [PackageDependency] {
-        let productStub = try productStub()
+        let productStub = try PackageJSON.Product.stub()
         return [
             .product(productStub, packageName: "product A"),
             .product(productStub, packageName: "product B"),
@@ -327,11 +290,11 @@ private extension PackageDependencyTests {
 
     func availableTargetDependenciesStub() throws -> [PackageDependency] {
         [
-            PackageDependency.target(try targetStub(type: "regular")),
-            PackageDependency.target(try targetStub(type: "executable")),
-            PackageDependency.target(try targetStub(type: "macro")),
-            PackageDependency.target(try targetStub(type: "test")),
-            PackageDependency.target(try targetStub(type: "other"))
+            PackageDependency.target(try PackageJSON.Target.stub(type: .regular)),
+            PackageDependency.target(try PackageJSON.Target.stub(type: .executable)),
+            PackageDependency.target(try PackageJSON.Target.stub(type: .macro)),
+            PackageDependency.target(try PackageJSON.Target.stub(type: .test)),
+            PackageDependency.target(try PackageJSON.Target.stub(type: .other))
         ]
     }
 }
