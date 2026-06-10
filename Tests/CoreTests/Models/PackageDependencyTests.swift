@@ -199,7 +199,7 @@ struct PackageDependencyTests {
         ]
 
         // When
-        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .regular))
+        let sut = dependencies.compatible(withSelectedDependency: try .targetStub(type: .regular))
 
         // Then
         #expect(sut.count == 3)
@@ -214,7 +214,7 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .regular))
+        let sut = dependencies.compatible(withSelectedDependency: try .targetStub(type: .regular))
 
         // Then
         let expectedRegularTarget = try PackageDependency.targetStub(type: .regular)
@@ -232,7 +232,7 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .executable))
+        let sut = dependencies.compatible(withSelectedDependency: try .targetStub(type: .executable))
 
         // Then
         #expect(sut.count == 3)
@@ -250,7 +250,7 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .macro))
+        let sut = dependencies.compatible(withSelectedDependency: try .targetStub(type: .macro))
 
         // Then
         #expect(sut.count == 2)
@@ -266,7 +266,7 @@ struct PackageDependencyTests {
         let dependencies = try availableTargetDependenciesStub()
 
         // When
-        let sut = dependencies.compatible(withSelectedDependency: try PackageDependency.targetStub(type: .test))
+        let sut = dependencies.compatible(withSelectedDependency: try .targetStub(type: .test))
 
         // Then
         #expect(sut.count == 3)
@@ -282,19 +282,19 @@ struct PackageDependencyTests {
 private extension PackageDependencyTests {
     func productOnlyDependenciesStub() throws -> [PackageDependency] {
         [
-            try PackageDependency.productStub(packageName: "product A"),
-            try PackageDependency.productStub(packageName: "product B"),
-            try PackageDependency.productStub(packageName: "product C")
+            try .productStub(packageName: "product A"),
+            try .productStub(packageName: "product B"),
+            try .productStub(packageName: "product C")
         ]
     }
 
     func availableTargetDependenciesStub() throws -> [PackageDependency] {
         [
-            try PackageDependency.targetStub(type: .regular),
-            try PackageDependency.targetStub(type: .executable),
-            try PackageDependency.targetStub(type: .macro),
-            try PackageDependency.targetStub(type: .test),
-            try PackageDependency.targetStub(type: .other)
+            try .targetStub(type: .regular),
+            try .targetStub(type: .executable),
+            try .targetStub(type: .macro),
+            try .targetStub(type: .test),
+            try .targetStub(type: .other)
         ]
     }
 }

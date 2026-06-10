@@ -136,11 +136,11 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
             let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
             let optionsStub: [PackageDependency] = [
-                try PackageDependency.targetStub(name: "TargetA"),
-                try PackageDependency.targetStub(name: "TargetB"),
-                try PackageDependency.targetStub(name: "TargetC"),
-                try PackageDependency.targetStub(name: "TargetD"),
-                try PackageDependency.targetStub(name: "TargetE")
+                try .targetStub(name: "TargetA"),
+                try .targetStub(name: "TargetB"),
+                try .targetStub(name: "TargetC"),
+                try .targetStub(name: "TargetD"),
+                try .targetStub(name: "TargetE")
             ]
 
             // When
@@ -163,9 +163,9 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
             let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
             let optionsStub: [PackageDependency] = [
-                try PackageDependency.targetStub(name: "TargetA"),
-                try PackageDependency.targetStub(name: "TargetB"),
-                try PackageDependency.targetStub(name: "TargetC"),
+                try .targetStub(name: "TargetA"),
+                try .targetStub(name: "TargetB"),
+                try .targetStub(name: "TargetC"),
             ]
 
             // When
