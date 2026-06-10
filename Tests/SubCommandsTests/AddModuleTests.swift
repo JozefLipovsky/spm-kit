@@ -299,10 +299,10 @@ struct AddModuleTests {
 
         // Target Dependencies Prompt
         let expectedTargetDependencies: [PackageDependency] = [
-            .target(.init(name: "TargetA", type: .regular)),
-            .target(.init(name: "TargetB", type: .regular)),
-            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
-            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
+            try .targetStub(name: "TargetA"),
+            try .targetStub(name: "TargetB"),
+            try .productStub(name: "ProductA", packageName: "StubPackage"),
+            try .productStub(name: "ProductB", packageName: "StubPackage")
         ]
         let expectedTargetQuestion = "Which dependencies would you like to include for the module target?"
 
@@ -312,11 +312,11 @@ struct AddModuleTests {
 
         // Test Target Dependencies Prompt
         let expectedTestTargetDependencies: [PackageDependency] = [
-            .target(.init(name: "TargetA", type: .regular)),
-            .target(.init(name: "TargetB", type: .regular)),
-            .target(.init(name: "TargetC", type: .test)),
-            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
-            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
+            try .targetStub(name: "TargetA"),
+            try .targetStub(name: "TargetB"),
+            try .targetStub(name: "TargetC", type: .test),
+            try .productStub(name: "ProductA", packageName: "StubPackage"),
+            try .productStub(name: "ProductB", packageName: "StubPackage")
         ]
         let expectedTestTargetQuestion = "Which dependencies would you like to include for the module test target?"
         let expectedTestTargetDescription = "The new module's main target will be added automatically."
