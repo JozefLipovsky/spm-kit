@@ -136,11 +136,11 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
             let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
             let optionsStub: [PackageDependency] = [
-                .target(try targetStub(name: "TargetA")),
-                .target(try targetStub(name: "TargetB")),
-                .target(try targetStub(name: "TargetC")),
-                .target(try targetStub(name: "TargetD")),
-                .target(try targetStub(name: "TargetE"))
+                try PackageDependency.targetStub(name: "TargetA"),
+                try PackageDependency.targetStub(name: "TargetB"),
+                try PackageDependency.targetStub(name: "TargetC"),
+                try PackageDependency.targetStub(name: "TargetD"),
+                try PackageDependency.targetStub(name: "TargetE")
             ]
 
             // When
@@ -163,9 +163,9 @@ struct NooraClientTests {
             @Dependency(\.nooraClient) var sut
             let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
             let optionsStub: [PackageDependency] = [
-                .target(try targetStub(name: "TargetA")),
-                .target(try targetStub(name: "TargetB")),
-                .target(try targetStub(name: "TargetC"))
+                try PackageDependency.targetStub(name: "TargetA"),
+                try PackageDependency.targetStub(name: "TargetB"),
+                try PackageDependency.targetStub(name: "TargetC"),
             ]
 
             // When
@@ -174,20 +174,5 @@ struct NooraClientTests {
             // Then
             #expect(output.name == "TargetB")
         }
-    }
-}
-
-private extension NooraClientTests {
-    func targetStub(name: String) throws -> PackageJSON.Target {
-        let targetJSON = Data(
-            """
-            {
-                "name": "\(name)",
-                "type": "regular"
-            }
-            """.utf8
-        )
-
-        return try JSONDecoder().decode(PackageJSON.Target.self, from: targetJSON)
     }
 }
