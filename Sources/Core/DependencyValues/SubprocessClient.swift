@@ -104,7 +104,7 @@ package extension SubprocessClient {
 }
 
 private extension SubprocessClient {
-    typealias Result = ExecutionRecord<StringOutput<Unicode.UTF8>, StringOutput<Unicode.UTF8>>
+    typealias Result = ExecutionResult<(), StringOutput<Unicode.UTF8>, StringOutput<Unicode.UTF8>>
 
     static func execute(_ command: ShellCommand, in workingDirectory: FilePath?) async throws -> Result {
         try await Subprocess.run(

@@ -75,7 +75,7 @@ struct BootstrapTests {
             "--testing-library",
             testingLibrary.description
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -239,7 +239,7 @@ struct BootstrapTests {
             "xctest"
         ]
 
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -299,7 +299,7 @@ struct BootstrapTests {
             "--macOS",
             "v15"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -351,7 +351,7 @@ struct BootstrapTests {
             "--tvOS",
             "v26"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -399,7 +399,7 @@ struct BootstrapTests {
             "--testing-library",
             "none"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -431,7 +431,7 @@ struct BootstrapTests {
             "--testing-library",
             "none"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -455,7 +455,7 @@ struct BootstrapTests {
     func bootstrap_nooraClientCompanyDomainPrompt_configuration() async throws {
         // Given
         let arguments = ["MyTestProject", "--iOS", "v26", "--root-module", "feature", "--testing-library", "none"]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -487,7 +487,7 @@ struct BootstrapTests {
             "--testing-library",
             "none"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -519,7 +519,7 @@ struct BootstrapTests {
             "--root-module",
             "feature"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -551,7 +551,7 @@ struct BootstrapTests {
             "--testing-library",
             "none"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         // When
         try await sut.run()
@@ -607,7 +607,7 @@ struct BootstrapTests {
             "--testing-library",
             "xctest"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         await #expect(throws: Error.self) {
             // When
@@ -640,7 +640,7 @@ struct BootstrapTests {
             "--testing-library",
             "xctest"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         await #expect(throws: Error.self) {
             // When
@@ -673,7 +673,7 @@ struct BootstrapTests {
             "--testing-library",
             "xctest"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
         await #expect(throws: Error.self) {
             // When
             try await sut.run()
@@ -705,7 +705,7 @@ struct BootstrapTests {
             "--testing-library",
             "xctest"
         ]
-        var sut = try await Bootstrap.parse(arguments)
+        var sut = try Bootstrap.parse(arguments)
 
         await #expect(throws: Error.self) {
             // When
