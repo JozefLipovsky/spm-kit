@@ -207,7 +207,6 @@ private extension PackageJSONTests {
     }
 
     func packageStub() throws -> PackageJSON {
-        try JSONDecoder().decode(PackageJSON.self, from: PackageJSON.stub)
+        try PackageJSON.stub()
     }
 }
-
