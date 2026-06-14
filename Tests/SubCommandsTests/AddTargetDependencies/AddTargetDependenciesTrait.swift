@@ -145,15 +145,15 @@ extension AddTargetDependenciesTrait {
         let dependencies: [PackageDependency]
 
         init(
-            targeName: String = "TargetStub",
+            targetName: String = "TargetStub",
             targetType: PackageJSON.Target.TargetType = .regular,
-            dependencies: [PackageDependency] = []
+            dependencies: [String] = []
         ) {
             do {
-                self.target = try .targetStub(name: targeName, type: targetType)
-                self.dependencies = dependencies
+                self.target = try .targetStub(name: targetName, type: targetType)
+                self.dependencies = try dependencies.map { try .targetStub(name: $0) }
             } catch {
-                preconditionFailure("Invalid target stub: \(error)")
+                preconditionFailure("Invalid NooraClient stub: \(error)")
             }
         }
     }
