@@ -81,6 +81,44 @@ struct AddTargetDependenciesTest {
         )
         #expect(subprocessRunCommands[1].command == swiftFormatCommand)
     }
+
+    // MARK: - Run - Error Handling
+
+    @Test(
+        "run() - when package manifest not found - throws targets not found error",
+        .addTargetDependenciesEnvironmentMock(subprocessClientStubs: .init(packageDump: Self.emptyPackageJSON))
+    )
+    func run_whenPackageManifestNotFound_throwsTargetsNotFoundError() async throws {
+        // Given
+        let arguments = ["TargetB"]
+        var sut = try AddTargetDependencies.parse(arguments)
+
+        // When
+        let error = await #expect(throws: AddTargetDependencies.Error.self) {
+            try await sut.run()
+        }
+
+        // Then
+        #expect(error == .targetsNotFound)
+    }
+
+    @Test(
+        "run() - when invalid target argument provided  - throws target not found error",
+        .addTargetDependenciesEnvironmentMock()
+    )
+    func run_whenInvalidTargetArgumentProvided_throwsTargetNotFoundError() async throws {
+        // Given
+        let arguments = ["TargetXYZ"]
+        var sut = try AddTargetDependencies.parse(arguments)
+
+        // When
+        let error = await #expect(throws: AddTargetDependencies.Error.self) {
+            try await sut.run()
+        }
+
+        // Then
+        #expect(error == .targetNotFound(name: "TargetXYZ"))
+    }
 }
 
 @Suite("AddTargetDependencies.Error Tests", .tags(.unit))
@@ -110,5 +148,17 @@ struct AddTargetDependenciesErrorTests {
 
         // Then
         #expect(sut == "Could not find any targets in the project.")
+    }
+}
+
+private extension AddTargetDependenciesTest {
+    static var emptyPackageJSON: String {
+        """
+        {
+            "name": "StubPackage",
+            "products": [],
+            "targets": []
+        }
+        """
     }
 }
