@@ -35,7 +35,6 @@ struct BootstrapTrait: TestTrait, TestScoping {
         self.clientErrorStub = clientErrorStub
     }
 
-    // swiftlint:disable function_body_length
     func provideScope(
         for test: Test,
         testCase: Test.Case?,
@@ -58,89 +57,33 @@ struct BootstrapTrait: TestTrait, TestScoping {
         try configClientStubs.generateConfig(at: pathStub.currentPath)
 
         try await withDependencies {
-            $0.pathClient.current = {
-                workingDirectoryStub.path
-            }
-            $0.nooraClient.textInput = { configuration, argument in
-                await executionContext.nooraClientSpy.recordTextInput(configuration: configuration, argument: argument)
-                return nooraClientStubs.textInput(for: configuration)
-            }
-            $0.nooraClient.testingLibrarySelection = { configuration, argument in
-                await executionContext.nooraClientSpy.recordTestingLibrarySelection(
-                    configuration: configuration,
-                    testingLibrary: argument
-                )
-                return nooraClientStubs.testingLibrary
-            }
-            $0.nooraClient.platformsSelection = { configuration, argument in
-                await executionContext.nooraClientSpy.recordPlatformsSelection(
-                    configuration: configuration,
-                    platforms: argument
-                )
-                return nooraClientStubs.platforms
-            }
-            $0.nooraClient.progress = { message, successMessage, errorMessage, operation in
-                await executionContext.nooraClientSpy.recordOperationProgress(
-                    message: message,
-                    successMessage: successMessage,
-                    errorMessage: errorMessage
-                )
-                return try await operation { _ in }
-            }
-            $0.subprocessClient.run = { command, workingDirectory in
-                if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.subprocessClientSpy.recordRun(
-                    command: command,
-                    workingDirectory: workingDirectory
-                )
-            }
-            $0.resourcesClient.templateItem = { type in
-                if let clientErrorStub, case .resourcesClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.resourcesClientSpy.recordTemplateItem(type: type)
-                return resourcesClientStubs.templateItem(for: type)
-            }
-            $0.packageEditorClient.add = { platforms, path in
-                if let clientErrorStub, case .packageEditorClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.packageEditorClientSpy.recordAdd(platforms: platforms, toManifestAt: path.string)
-            }
-            $0.stencilTemplateClient.processRootModuleTemplate = { path, projectName, moduleName in
-                if let clientErrorStub, case .stencilTemplateClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.stencilTemplateClientSpy.recordProcessRootModuleTemplate(
-                    atPath: path.string,
-                    projectName: projectName,
-                    moduleName: moduleName
-                )
-            }
-            $0.stencilTemplateClient.processSelectedTargetsAppTemplates = { targetAppTemplates, moduleName in
-                if let clientErrorStub, case .stencilTemplateClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.stencilTemplateClientSpy.recordProcessSelectedTargetsAppTemplates(
-                    paths: targetAppTemplates.map(\.string),
-                    moduleName: moduleName
-                )
-            }
-            $0.xcodeProjClient.updateProjectReference = { workspace, newProjectName in
-                if let clientErrorStub, case .xcodeProjClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.xcodeProjClientSpy.recordUpdateProjectReference(
-                    inWorkspace: workspace.string,
-                    newProjectName: newProjectName
-                )
-            }
-            $0.xcodeProjClient.configureProject = { configuration in
-                if let clientErrorStub, case .xcodeProjClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.xcodeProjClientSpy.recordConfigureProject(
-                    projectPath: configuration.projectPath.string,
-                    projectRootPath: configuration.projectRootPath.string,
-                    newProjectName: configuration.newProjectName,
-                    selectedPlatforms: configuration.selectedPlatforms,
-                    bundleIdentifier: configuration.bundleIdentifier,
-                    rootModuleName: configuration.rootModuleName
-                )
-            }
-            $0.configClient.swiftFormatConfigPath = { configPath in
-                if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.configClientSpy.recordSwiftFormatConfigPath(atConfigPath: configPath.string)
-                return configClientStubs.swiftFormatConfigPath.path
-            }
+            $0.currentPath(workingDirectoryStub)
+            $0.textInput(executionContext: executionContext, nooraClientStubs: nooraClientStubs)
+            $0.testingLibrarySelection(
+                executionContext: executionContext,
+                testingLibraryStub: nooraClientStubs.testingLibrary
+            )
+            $0.platformsSelection(executionContext: executionContext, platformsStub: nooraClientStubs.platforms)
+            $0.progress(executionContext: executionContext)
+            $0.runCommand(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.templateItem(
+                executionContext: executionContext,
+                resourcesClientStubs: resourcesClientStubs,
+                clientErrorStub: clientErrorStub
+            )
+            $0.editPackage(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.processRootModuleTemplate(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.processSelectedTargetsAppTemplates(
+                executionContext: executionContext,
+                clientErrorStub: clientErrorStub
+            )
+            $0.updateProjectReference(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.configureProject(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.swiftFormatConfigPath(
+                executionContext: executionContext,
+                configClientStubs: configClientStubs,
+                clientErrorStub: clientErrorStub
+            )
         } operation: { [executionContext, pathStub] in
             try await BootstrapExecutionContext.$current.withValue(executionContext) {
                 try await function()
@@ -148,7 +91,6 @@ struct BootstrapTrait: TestTrait, TestScoping {
             }
         }
     }
-    // swiftlint:enable function_body_length
 }
 
 extension Trait where Self == BootstrapTrait {
@@ -246,6 +188,166 @@ extension BootstrapTrait {
                 case .swiftFormatConfig:
                     return TemplateItem(path: swiftFormatConfigPath)
             }
+        }
+    }
+}
+
+private extension DependencyValues {
+    mutating func currentPath(_ currentPath: String) {
+        pathClient.current = { currentPath.path }
+    }
+
+    mutating func textInput(
+        executionContext: BootstrapExecutionContext,
+        nooraClientStubs: BootstrapTrait.NooraClientStubs
+    ) {
+        nooraClient.textInput = { configuration, argument in
+            await executionContext.nooraClientSpy.recordTextInput(configuration: configuration, argument: argument)
+            return nooraClientStubs.textInput(for: configuration)
+        }
+    }
+
+    mutating func testingLibrarySelection(
+        executionContext: BootstrapExecutionContext,
+        testingLibraryStub: TestingLibrary
+    ) {
+        nooraClient.testingLibrarySelection = { configuration, argument in
+            await executionContext.nooraClientSpy.recordTestingLibrarySelection(
+                configuration: configuration,
+                testingLibrary: argument
+            )
+
+            return testingLibraryStub
+        }
+    }
+
+    mutating func platformsSelection(
+        executionContext: BootstrapExecutionContext,
+        platformsStub: [any PlatformVersion]
+    ) {
+        nooraClient.platformsSelection = { configuration, argument in
+            await executionContext.nooraClientSpy.recordPlatformsSelection(
+                configuration: configuration,
+                platforms: argument
+            )
+
+            return platformsStub
+        }
+    }
+
+    mutating func progress(executionContext: BootstrapExecutionContext) {
+        nooraClient.progress = { message, successMessage, errorMessage, operation in
+            await executionContext.nooraClientSpy.recordOperationProgress(
+                message: message,
+                successMessage: successMessage,
+                errorMessage: errorMessage
+            )
+
+            return try await operation { _ in }
+        }
+    }
+
+    mutating func runCommand(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        subprocessClient.run = { command, workingDirectory in
+            if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.subprocessClientSpy.recordRun(
+                command: command,
+                workingDirectory: workingDirectory
+            )
+        }
+    }
+
+    mutating func templateItem(
+        executionContext: BootstrapExecutionContext,
+        resourcesClientStubs: BootstrapTrait.ResourcesClientStubs,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        resourcesClient.templateItem = { type in
+            if let clientErrorStub, case .resourcesClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.resourcesClientSpy.recordTemplateItem(type: type)
+            return resourcesClientStubs.templateItem(for: type)
+        }
+    }
+
+    mutating func editPackage(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        packageEditorClient.add = { platforms, path in
+            if let clientErrorStub, case .packageEditorClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.packageEditorClientSpy.recordAdd(platforms: platforms, toManifestAt: path.string)
+        }
+    }
+
+    mutating func processRootModuleTemplate(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        stencilTemplateClient.processRootModuleTemplate = { path, projectName, moduleName in
+            if let clientErrorStub, case .stencilTemplateClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.stencilTemplateClientSpy.recordProcessRootModuleTemplate(
+                atPath: path.string,
+                projectName: projectName,
+                moduleName: moduleName
+            )
+        }
+    }
+
+    mutating func processSelectedTargetsAppTemplates(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        stencilTemplateClient.processSelectedTargetsAppTemplates = { targetAppTemplates, moduleName in
+            if let clientErrorStub, case .stencilTemplateClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.stencilTemplateClientSpy.recordProcessSelectedTargetsAppTemplates(
+                paths: targetAppTemplates.map(\.string),
+                moduleName: moduleName
+            )
+        }
+    }
+
+    mutating func updateProjectReference(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        xcodeProjClient.updateProjectReference = { workspace, newProjectName in
+            if let clientErrorStub, case .xcodeProjClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.xcodeProjClientSpy.recordUpdateProjectReference(
+                inWorkspace: workspace.string,
+                newProjectName: newProjectName
+            )
+        }
+    }
+
+    mutating func configureProject(
+        executionContext: BootstrapExecutionContext,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        xcodeProjClient.configureProject = { configuration in
+            if let clientErrorStub, case .xcodeProjClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.xcodeProjClientSpy.recordConfigureProject(
+                projectPath: configuration.projectPath.string,
+                projectRootPath: configuration.projectRootPath.string,
+                newProjectName: configuration.newProjectName,
+                selectedPlatforms: configuration.selectedPlatforms,
+                bundleIdentifier: configuration.bundleIdentifier,
+                rootModuleName: configuration.rootModuleName
+            )
+        }
+    }
+
+    mutating func swiftFormatConfigPath(
+        executionContext: BootstrapExecutionContext,
+        configClientStubs: ConfigFileStub,
+        clientErrorStub: BootstrapTrait.ClientErrorStub?
+    ) {
+        configClient.swiftFormatConfigPath = { configPath in
+            if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.configClientSpy.recordSwiftFormatConfigPath(atConfigPath: configPath.string)
+            return configClientStubs.swiftFormatConfigPath.path
         }
     }
 }
