@@ -37,7 +37,6 @@ struct AddTargetDependenciesTrait: TestTrait, TestScoping {
         self.clientErrorStub = clientErrorStub
     }
 
-    // swiftlint:disable function_body_length
     func provideScope(
         for test: Test,
         testCase: Test.Case?,
@@ -55,57 +54,29 @@ struct AddTargetDependenciesTrait: TestTrait, TestScoping {
         try configClientStubs.generateConfig(at: pathStub.currentPath)
 
         try await withDependencies {
-            $0.pathClient.current = {
-                currentPathStub.path
-            }
-            $0.nooraClient.targetSelection = { configuration, options in
-                await executionContext.nooraClientSpy.recordTargetSelection(
-                    configuration: configuration,
-                    options: options
-                )
-
-                return nooraClientStubs.target
-            }
-            $0.nooraClient.dependenciesSelection = { configuration, options in
-                await executionContext.nooraClientSpy.recordDependenciesSelection(
-                    configuration: configuration,
-                    options: options
-                )
-                return nooraClientStubs.dependencies
-            }
-            $0.nooraClient.progress = { message, successMessage, errorMessage, operation in
-                await executionContext.nooraClientSpy.recordOperationProgress(
-                    message: message,
-                    successMessage: successMessage,
-                    errorMessage: errorMessage
-                )
-                return try await operation { _ in }
-            }
-            $0.subprocessClient.run = { command, workingDirectory in
-                if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.subprocessClientSpy.recordRun(
-                    command: command,
-                    workingDirectory: workingDirectory
-                )
-            }
-            $0.subprocessClient.runAndCapture = { command, workingDirectory in
-                if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.subprocessClientSpy.recordRunAndCapture(
-                    command: command,
-                    workingDirectory: workingDirectory
-                )
-                return subprocessClientStubs.result(for: command)
-            }
-            $0.configClient.modulesPath = { configPath in
-                if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.configClientSpy.recordModulesPath(atConfigPath: configPath.string)
-                return configClientStubs.modulesPath.path
-            }
-            $0.configClient.swiftFormatConfigPath = { configPath in
-                if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
-                await executionContext.configClientSpy.recordSwiftFormatConfigPath(atConfigPath: configPath.string)
-                return configClientStubs.swiftFormatConfigPath.path
-            }
+            $0.currentPath(currentPathStub)
+            $0.targetSelection(executionContext: executionContext, targetStub: nooraClientStubs.target)
+            $0.dependenciesSelection(
+                executionContext: executionContext,
+                dependenciesStub: nooraClientStubs.dependencies
+            )
+            $0.progress(executionContext: executionContext)
+            $0.runCommand(executionContext: executionContext, clientErrorStub: clientErrorStub)
+            $0.runAndCaptureCommand(
+                executionContext: executionContext,
+                subprocessClientStubs: subprocessClientStubs,
+                clientErrorStub: clientErrorStub
+            )
+            $0.modulesPath(
+                executionContext: executionContext,
+                configClientStubs: configClientStubs,
+                clientErrorStub: clientErrorStub
+            )
+            $0.swiftFormatConfigPath(
+                executionContext: executionContext,
+                configClientStubs: configClientStubs,
+                clientErrorStub: clientErrorStub
+            )
         } operation: { [executionContext, pathStub] in
             try await AddTargetDependenciesExecutionContext.$current.withValue(executionContext) {
                 try await function()
@@ -113,7 +84,6 @@ struct AddTargetDependenciesTrait: TestTrait, TestScoping {
             }
         }
     }
-    // swiftlint:enable function_body_length
 }
 
 extension Trait where Self == AddTargetDependenciesTrait {
@@ -155,6 +125,101 @@ extension AddTargetDependenciesTrait {
             } catch {
                 preconditionFailure("Invalid NooraClient stub: \(error)")
             }
+        }
+    }
+}
+
+private extension DependencyValues {
+    mutating func currentPath(_ currentPath: String) {
+        pathClient.current = { currentPath.path }
+    }
+
+    mutating func targetSelection(
+        executionContext: AddTargetDependenciesExecutionContext,
+        targetStub: PackageDependency
+    ) {
+        nooraClient.targetSelection = { configuration, options in
+            await executionContext.nooraClientSpy.recordTargetSelection(configuration: configuration, options: options)
+            return targetStub
+        }
+    }
+
+    mutating func dependenciesSelection(
+        executionContext: AddTargetDependenciesExecutionContext,
+        dependenciesStub: [PackageDependency]
+    ) {
+        nooraClient.dependenciesSelection = { configuration, options in
+            await executionContext.nooraClientSpy.recordDependenciesSelection(
+                configuration: configuration,
+                options: options
+            )
+
+            return dependenciesStub
+        }
+    }
+
+    mutating func progress(executionContext: AddTargetDependenciesExecutionContext) {
+        nooraClient.progress = { message, successMessage, errorMessage, operation in
+            await executionContext.nooraClientSpy.recordOperationProgress(
+                message: message,
+                successMessage: successMessage,
+                errorMessage: errorMessage
+            )
+
+            return try await operation { _ in }
+        }
+    }
+
+    mutating func runCommand(
+        executionContext: AddTargetDependenciesExecutionContext,
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
+    ) {
+        subprocessClient.run = { command, workingDirectory in
+            if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.subprocessClientSpy.recordRun(
+                command: command,
+                workingDirectory: workingDirectory
+            )
+        }
+    }
+
+    mutating func runAndCaptureCommand(
+        executionContext: AddTargetDependenciesExecutionContext,
+        subprocessClientStubs: SubprocessClientStubs,
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
+    ) {
+        subprocessClient.runAndCapture = { command, workingDirectory in
+            if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.subprocessClientSpy.recordRunAndCapture(
+                command: command,
+                workingDirectory: workingDirectory
+            )
+
+            return subprocessClientStubs.result(for: command)
+        }
+    }
+
+    mutating func modulesPath(
+        executionContext: AddTargetDependenciesExecutionContext,
+        configClientStubs: ConfigFileStub,
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
+    ) {
+        configClient.modulesPath = { configPath in
+            if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.configClientSpy.recordModulesPath(atConfigPath: configPath.string)
+            return configClientStubs.modulesPath.path
+        }
+    }
+
+    mutating func swiftFormatConfigPath(
+        executionContext: AddTargetDependenciesExecutionContext,
+        configClientStubs: ConfigFileStub,
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
+    ) {
+        configClient.swiftFormatConfigPath = { configPath in
+            if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
+            await executionContext.configClientSpy.recordSwiftFormatConfigPath(atConfigPath: configPath.string)
+            return configClientStubs.swiftFormatConfigPath.path
         }
     }
 }
