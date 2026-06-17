@@ -39,6 +39,7 @@ OPTIONS:
 SUBCOMMANDS:
   bootstrap-project       Initializes a new, modular Swift Package Manager (SPM) based project.
   add-module              Adds a module to the current SPM project.
+  add-target-dependencies Adds dependencies to an existing target in the current SPM project.
 
   See 'spm-kit help <subcommand>' for detailed help.
 ```
@@ -140,6 +141,30 @@ OPTIONS:
   --skip-dependencies     Skip adding dependencies to the module.
   --testing-library <testing-library>
                           The testing library to use for the module. (values: swift-testing, xctest, none)
+  --version               Show the version.
+  -h, --help              Show help information.
+```
+
+### Add Target Dependencies
+
+Adds dependencies to an existing target in your project. It handles:
+- Prompting for the target name if not provided via command-line argument.
+- Displaying available dependencies from the Swift Package manifest.
+- Allowing interactive selection of multiple dependencies to add to the target.
+
+```
+spm-kit add-target-dependencies -h
+OVERVIEW: Adds dependencies to an existing target in the current SPM project.
+
+Adds additional existing dependencies to an existing target in the Swift package manifest. The target can be provided via
+command-line argument; missing target value and dependencies will be prompted for interactively.
+
+USAGE: spm-kit add-target-dependencies [<target-name>]
+
+ARGUMENTS:
+  <target-name>           The name of the target to which dependencies will be added.
+
+OPTIONS:
   --version               Show the version.
   -h, --help              Show help information.
 ```
