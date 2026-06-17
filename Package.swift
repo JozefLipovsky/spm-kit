@@ -81,6 +81,9 @@ let package = Package(
         ),
         .target(
             name: "TestHelpers",
+            dependencies: [
+                .target(name: "Core")
+            ],
             path: "Tests/TestHelpers"
         )
     ],

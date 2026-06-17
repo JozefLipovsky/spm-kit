@@ -1,8 +1,8 @@
 //
-//  AddModuleTrait.swift
+//  AddTargetDependenciesTrait.swift
 //  SPMKit
 //
-//  Created by Jozef Lipovsky on 2026-01-06.
+//  Created by Jozef Lipovsky on 2026-06-06.
 //
 
 import Core
@@ -14,8 +14,9 @@ import Noora
 import PathKit
 import System
 import Testing
+import TestHelpers
 
-struct AddModuleTrait: TestTrait, TestScoping {
+struct AddTargetDependenciesTrait: TestTrait, TestScoping {
     private let pathClientStub: PathStub.Configuration
     private let nooraClientStubs: NooraClientStubs
     private let subprocessClientStubs: SubprocessClientStubs
@@ -44,7 +45,7 @@ struct AddModuleTrait: TestTrait, TestScoping {
         let pathStub = try PathStub(configuration: pathClientStub)
         let currentPathStub = pathStub.currentPath.string
 
-        let executionContext = AddModuleExecutionContext(
+        let executionContext = AddTargetDependenciesExecutionContext(
             nooraClientSpy: NooraClientSpy(),
             subprocessClientSpy: SubprocessClientSpy(),
             configClientSpy: ConfigClientSpy()
@@ -54,16 +55,7 @@ struct AddModuleTrait: TestTrait, TestScoping {
 
         try await withDependencies {
             $0.currentPath(currentPathStub)
-            $0.textInput(executionContext: executionContext, moduleNameStub: nooraClientStubs.moduleName)
-            $0.productTypeSelection(executionContext: executionContext, productTypeStub: nooraClientStubs.productType)
-            $0.testingLibrarySelection(
-                executionContext: executionContext,
-                testingLibraryStub: nooraClientStubs.testingLibrary
-            )
-            $0.yesOrNoConfirmation(
-                executionContext: executionContext,
-                selectDependenciesStub: nooraClientStubs.selectDependencies
-            )
+            $0.targetSelection(executionContext: executionContext, targetStub: nooraClientStubs.target)
             $0.dependenciesSelection(
                 executionContext: executionContext,
                 dependenciesStub: nooraClientStubs.dependencies
@@ -86,7 +78,7 @@ struct AddModuleTrait: TestTrait, TestScoping {
                 clientErrorStub: clientErrorStub
             )
         } operation: { [executionContext, pathStub] in
-            try await AddModuleExecutionContext.$current.withValue(executionContext) {
+            try await AddTargetDependenciesExecutionContext.$current.withValue(executionContext) {
                 try await function()
                 try pathStub.cleanup()
             }
@@ -94,13 +86,13 @@ struct AddModuleTrait: TestTrait, TestScoping {
     }
 }
 
-extension Trait where Self == AddModuleTrait {
-    static func addModuleEnvironmentMock(
+extension Trait where Self == AddTargetDependenciesTrait {
+    static func addTargetDependenciesEnvironmentMock(
         pathClientStub: PathStub.Configuration = .defaultTemporary,
-        nooraClientStubs: AddModuleTrait.NooraClientStubs = .init(),
+        nooraClientStubs: AddTargetDependenciesTrait.NooraClientStubs = .init(),
         subprocessClientStubs: SubprocessClientStubs = .init(),
         configClientStubs: ConfigFileStub = .init(),
-        clientErrorStub: AddModuleTrait.ClientErrorStub? = nil
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub? = nil
     ) -> Self {
         .init(
             pathClientStub: pathClientStub,
@@ -112,31 +104,27 @@ extension Trait where Self == AddModuleTrait {
     }
 }
 
-extension AddModuleTrait {
+extension AddTargetDependenciesTrait {
     enum ClientErrorStub: Error, Equatable {
         case subprocessClient
         case configClient
     }
 
     struct NooraClientStubs {
-        let moduleName: String
-        let productType: ProductType
-        let testingLibrary: TestingLibrary
-        let selectDependencies: Bool
+        let target: PackageDependency
         let dependencies: [PackageDependency]
 
         init(
-            moduleName: String = "ModuleStub",
-            productType: ProductType = .library,
-            testingLibrary: TestingLibrary = .swiftTesting,
-            selectDependencies: Bool = false,
-            dependencies: [PackageDependency] = []
+            targetName: String = "TargetStub",
+            targetType: PackageJSON.Target.TargetType = .regular,
+            dependencies: [String] = []
         ) {
-            self.moduleName = moduleName
-            self.productType = productType
-            self.testingLibrary = testingLibrary
-            self.selectDependencies = selectDependencies
-            self.dependencies = dependencies
+            do {
+                self.target = try .targetStub(name: targetName, type: targetType)
+                self.dependencies = try dependencies.map { try .targetStub(name: $0) }
+            } catch {
+                preconditionFailure("Invalid NooraClient stub: \(error)")
+            }
         }
     }
 }
@@ -146,51 +134,18 @@ private extension DependencyValues {
         pathClient.current = { currentPath.path }
     }
 
-    mutating func textInput(executionContext: AddModuleExecutionContext, moduleNameStub: String) {
-        nooraClient.textInput = { configuration, argument in
-            await executionContext.nooraClientSpy.recordTextInput(configuration: configuration, argument: argument)
-            return moduleNameStub
-        }
-    }
-
-    mutating func productTypeSelection(executionContext: AddModuleExecutionContext, productTypeStub: ProductType) {
-        nooraClient.productTypeSelection = { configuration, argument in
-            await executionContext.nooraClientSpy.recordProductTypeSelection(
-                configuration: configuration,
-                productType: argument
-            )
-
-            return productTypeStub
-        }
-    }
-
-    mutating func testingLibrarySelection(
-        executionContext: AddModuleExecutionContext,
-        testingLibraryStub: TestingLibrary
+    mutating func targetSelection(
+        executionContext: AddTargetDependenciesExecutionContext,
+        targetStub: PackageDependency
     ) {
-        nooraClient.testingLibrarySelection = { configuration, argument in
-            await executionContext.nooraClientSpy.recordTestingLibrarySelection(
-                configuration: configuration,
-                testingLibrary: argument
-            )
-            
-            return testingLibraryStub
-        }
-    }
-
-    mutating func yesOrNoConfirmation(executionContext: AddModuleExecutionContext, selectDependenciesStub: Bool) {
-        nooraClient.yesOrNoConfirmation = { configuration, argument in
-            await executionContext.nooraClientSpy.recordYesOrNoConfirmation(
-                configuration: configuration,
-                shouldSkip: argument
-            )
-
-            return selectDependenciesStub
+        nooraClient.targetSelection = { configuration, options in
+            await executionContext.nooraClientSpy.recordTargetSelection(configuration: configuration, options: options)
+            return targetStub
         }
     }
 
     mutating func dependenciesSelection(
-        executionContext: AddModuleExecutionContext,
+        executionContext: AddTargetDependenciesExecutionContext,
         dependenciesStub: [PackageDependency]
     ) {
         nooraClient.dependenciesSelection = { configuration, options in
@@ -203,7 +158,7 @@ private extension DependencyValues {
         }
     }
 
-    mutating func progress(executionContext: AddModuleExecutionContext) {
+    mutating func progress(executionContext: AddTargetDependenciesExecutionContext) {
         nooraClient.progress = { message, successMessage, errorMessage, operation in
             await executionContext.nooraClientSpy.recordOperationProgress(
                 message: message,
@@ -216,8 +171,8 @@ private extension DependencyValues {
     }
 
     mutating func runCommand(
-        executionContext: AddModuleExecutionContext,
-        clientErrorStub: AddModuleTrait.ClientErrorStub?
+        executionContext: AddTargetDependenciesExecutionContext,
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
     ) {
         subprocessClient.run = { command, workingDirectory in
             if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
@@ -229,9 +184,9 @@ private extension DependencyValues {
     }
 
     mutating func runAndCaptureCommand(
-        executionContext: AddModuleExecutionContext,
+        executionContext: AddTargetDependenciesExecutionContext,
         subprocessClientStubs: SubprocessClientStubs,
-        clientErrorStub: AddModuleTrait.ClientErrorStub?
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
     ) {
         subprocessClient.runAndCapture = { command, workingDirectory in
             if let clientErrorStub, case .subprocessClient = clientErrorStub { throw clientErrorStub }
@@ -245,9 +200,9 @@ private extension DependencyValues {
     }
 
     mutating func modulesPath(
-        executionContext: AddModuleExecutionContext,
+        executionContext: AddTargetDependenciesExecutionContext,
         configClientStubs: ConfigFileStub,
-        clientErrorStub: AddModuleTrait.ClientErrorStub?
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
     ) {
         configClient.modulesPath = { configPath in
             if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }
@@ -257,9 +212,9 @@ private extension DependencyValues {
     }
 
     mutating func swiftFormatConfigPath(
-        executionContext: AddModuleExecutionContext,
+        executionContext: AddTargetDependenciesExecutionContext,
         configClientStubs: ConfigFileStub,
-        clientErrorStub: AddModuleTrait.ClientErrorStub?
+        clientErrorStub: AddTargetDependenciesTrait.ClientErrorStub?
     ) {
         configClient.swiftFormatConfigPath = { configPath in
             if let clientErrorStub, case .configClient = clientErrorStub { throw clientErrorStub }

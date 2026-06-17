@@ -5,14 +5,18 @@
 //  Created by Jozef Lipovsky on 2025-12-07.
 //
 
+import Foundation
 import Core
 import Dependencies
 import Noora
 import TestHelpers
 import Testing
 
-@Suite("NooraClient Tests", .tags(.unit))
+@Suite("NooraClient Tests", .tags(.unit, .integration))
 struct NooraClientTests {
+
+    // MARK: Unit
+
     @Test("textInput - when argument is not nil - returns argument without prompting")
     func textInput_whenArgumentIsNotNil_returnsArgumentWithoutPrompting() async {
         await withDependencies {
@@ -117,6 +121,58 @@ struct NooraClientTests {
 
             // Then
             #expect(output == false)
+        }
+    }
+
+    // MARK: Integration
+
+    @Test("dependenciesSelection - returns selected dependencies from options")
+    func dependenciesSelection_returnsSelectedDependenciesFromOptions() async throws {
+        try await withDependencies {
+            $0.nooraClient = .liveValue
+            $0.nooraClient.dependenciesSelection = { _, options in [options[1], options[3]] }
+        } operation: {
+            // Given
+            @Dependency(\.nooraClient) var sut
+            let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
+            let optionsStub: [PackageDependency] = [
+                try .targetStub(name: "TargetA"),
+                try .targetStub(name: "TargetB"),
+                try .targetStub(name: "TargetC"),
+                try .targetStub(name: "TargetD"),
+                try .targetStub(name: "TargetE")
+            ]
+
+            // When
+            let output = await sut.dependenciesSelection(configuration: configStub, options: optionsStub)
+
+            // Then
+            #expect(output.count == 2)
+            #expect(output[0].name == "TargetB")
+            #expect(output[1].name == "TargetD")
+        }
+    }
+
+    @Test("targetSelection - returns selected target from options")
+    func targetSelection_returnsSelectedTargetFromOptions() async throws {
+        try await withDependencies {
+            $0.nooraClient = .liveValue
+            $0.nooraClient.targetSelection = { _, options in options[1] }
+        } operation: {
+            // Given
+            @Dependency(\.nooraClient) var sut
+            let configStub = NooraPromptConfiguration(title: "Title", question: "Question")
+            let optionsStub: [PackageDependency] = [
+                try .targetStub(name: "TargetA"),
+                try .targetStub(name: "TargetB"),
+                try .targetStub(name: "TargetC"),
+            ]
+
+            // When
+            let output = await sut.targetSelection(configuration: configStub, options: optionsStub)
+
+            // Then
+            #expect(output.name == "TargetB")
         }
     }
 }

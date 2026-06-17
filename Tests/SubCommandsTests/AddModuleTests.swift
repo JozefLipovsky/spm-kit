@@ -26,7 +26,7 @@ struct AddModuleTests {
             "--testing-library", "swift-testing",
             "--skip-dependencies"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -122,7 +122,7 @@ struct AddModuleTests {
             "--product-type", "library",
             "--testing-library", "none"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -181,7 +181,7 @@ struct AddModuleTests {
             "--testing-library", "swift-testing",
             "--skip-dependencies"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -209,7 +209,7 @@ struct AddModuleTests {
             "--testing-library", "swift-testing",
             "--skip-dependencies"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -235,7 +235,7 @@ struct AddModuleTests {
             "--product-type", "library",
             "--skip-dependencies"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -261,7 +261,7 @@ struct AddModuleTests {
             "--product-type", "library",
             "--testing-library", "none"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -286,7 +286,7 @@ struct AddModuleTests {
     func addModule_nooraDependencyPrompts_configuration() async throws {
         // Given
         let arguments = ["MyModule", "--product-type", "library"]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -299,10 +299,10 @@ struct AddModuleTests {
 
         // Target Dependencies Prompt
         let expectedTargetDependencies: [PackageDependency] = [
-            .target(.init(name: "TargetA", type: .regular)),
-            .target(.init(name: "TargetB", type: .regular)),
-            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
-            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
+            try .targetStub(name: "TargetA"),
+            try .targetStub(name: "TargetB"),
+            try .productStub(name: "ProductA", packageName: "StubPackage"),
+            try .productStub(name: "ProductB", packageName: "StubPackage")
         ]
         let expectedTargetQuestion = "Which dependencies would you like to include for the module target?"
 
@@ -312,11 +312,11 @@ struct AddModuleTests {
 
         // Test Target Dependencies Prompt
         let expectedTestTargetDependencies: [PackageDependency] = [
-            .target(.init(name: "TargetA", type: .regular)),
-            .target(.init(name: "TargetB", type: .regular)),
-            .target(.init(name: "TargetC", type: .test)),
-            .product(.init(name: "ProductA", type: .library), packageName: "StubPackage"),
-            .product(.init(name: "ProductB", type: .library), packageName: "StubPackage")
+            try .targetStub(name: "TargetA"),
+            try .targetStub(name: "TargetB"),
+            try .targetStub(name: "TargetC", type: .test),
+            try .productStub(name: "ProductA", packageName: "StubPackage"),
+            try .productStub(name: "ProductB", packageName: "StubPackage")
         ]
         let expectedTestTargetQuestion = "Which dependencies would you like to include for the module test target?"
         let expectedTestTargetDescription = "The new module's main target will be added automatically."
@@ -338,7 +338,7 @@ struct AddModuleTests {
             "--product-type", "library",
             "--testing-library", "swift-testing"
         ]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         try await sut.run()
@@ -379,10 +379,10 @@ struct AddModuleTests {
     func run_whenConfigFileNotFound_throwsConfigFileNotFoundError() async throws {
         // Given
         let arguments = ["MyModule", "--product-type", "library", "--skip-dependencies"]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
-        let error = await #expect(throws: AddModule.Error.self) {
+        let error = await #expect(throws: SubcommandError.self) {
             try await sut.run()
         }
 
@@ -397,7 +397,7 @@ struct AddModuleTests {
     func run_whenUnsupportedProductTypeSelected_throwsUnsupportedProductTypeError() async throws {
         // Given
         let arguments = ["MyModule", "--skip-dependencies", "--testing-library", "none"]
-        var sut = try await AddModule.parse(arguments)
+        var sut = try AddModule.parse(arguments)
 
         // When
         let error = await #expect(throws: AddModule.Error.self) {

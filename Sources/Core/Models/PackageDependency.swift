@@ -54,6 +54,20 @@ package enum PackageDependency: Equatable, Sendable, CustomStringConvertible, Co
 }
 
 package extension [PackageDependency] {
+    /// Returns the first target dependency with the specified name, or nil if no match exists.
+    /// - Parameter targetName: The name of the target to search for.
+    /// - Returns: The matching target dependency, or nil if no `.target` with that name exists.
+    func target(named targetName: String) -> PackageDependency? {
+        first { dependency in
+            switch dependency {
+                case .target(let target):
+                    return target.name == targetName
+                case .product:
+                    return false
+            }
+        }
+    }
+
     /// Returns dependencies filtered by compatibility with the specified product type.
     /// - Parameter productType: The product type to check compatibility against.
     /// - Returns: Filtered array containing only compatible dependencies.
@@ -75,6 +89,28 @@ package extension [PackageDependency] {
             switch dependency {
                 case .target(let target):
                     return target.isCompatibleAsTestDependency()
+                case .product:
+                    return true
+            }
+        }
+    }
+
+    /// Returns dependencies filtered by compatibility with the specified dependency.
+    /// - Parameter selectedDependency: The dependency to check compatibility against.
+    /// - Returns: Filtered array containing only compatible dependencies.
+    func compatible(withSelectedDependency selectedDependency: PackageDependency) -> [PackageDependency] {
+        filter { dependency in
+            switch dependency {
+                case .target(let parsedTarget):
+                    let isCompatible: Bool
+                    switch selectedDependency {
+                        case .target(let selectedDependencyTarget):
+                            isCompatible = parsedTarget.isCompatible(asDependencyFor: selectedDependencyTarget)
+                        case .product:
+                            isCompatible = false
+                    }
+
+                    return isCompatible
                 case .product:
                     return true
             }

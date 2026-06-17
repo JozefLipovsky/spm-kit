@@ -103,6 +103,17 @@ package struct NooraClient: Sendable {
             _ options: [PackageDependency]
         ) async -> [PackageDependency] = { _, _ in [] }
 
+    /// Prompts the user to select a target from a list of options.
+    /// - Parameters:
+    ///   - configuration: The configuration for the prompt.
+    ///   - options: The list of available targets.
+    /// - Returns: The selected target.
+    package var targetSelection:
+        @Sendable (
+            _ configuration: NooraPromptConfiguration,
+            _ options: [PackageDependency]
+        ) async -> PackageDependency = { _, _ in .target(.init(name: "Mock", type: .other)) }
+
     /// Posts an info message to inform the user about an issue.
     /// - Parameters:
     ///   - message: The message to display.
@@ -160,6 +171,9 @@ extension NooraClient: DependencyKey {
             },
             dependenciesSelection: { configuration, options in
                 dependenciesPrompt(configuration, options: options)
+            },
+            targetSelection: { configuration, options in
+                targetPrompt(configuration, options: options)
             },
             info: { message in
                 Noora().info(InfoAlert(stringLiteral: message))
@@ -272,6 +286,18 @@ private extension NooraClient {
         options: [PackageDependency]
     ) -> [PackageDependency] {
         Noora().multipleChoicePrompt(
+            title: configuration.title,
+            question: configuration.question,
+            options: options,
+            description: configuration.description
+        )
+    }
+
+    static func targetPrompt(
+        _ configuration: NooraPromptConfiguration,
+        options: [PackageDependency]
+    ) -> PackageDependency {
+        Noora().singleChoicePrompt(
             title: configuration.title,
             question: configuration.question,
             options: options,
